@@ -3,9 +3,9 @@
 
 namespace mpInternal
 {
-  void ReportError(const char* szFile, size_t uiLine, const char* szMessage);
-  void AssertionFailed(const char* szFile, size_t uiLine, const char* szCondition, const char* szMessage);
-  void CLCallFailed(const char* szFile, size_t uiLine, const char* szCall, mpResult result);
+  void MP_WrapperAPI ReportError(const char* szFile, size_t uiLine, const char* szMessage);
+  void MP_WrapperAPI AssertionFailed(const char* szFile, size_t uiLine, const char* szCondition, const char* szMessage);
+  void MP_WrapperAPI CLCallFailed(const char* szFile, size_t uiLine, const char* szCall, mpResult result);
 }
 
 #define MP_DebugBreak do { __debugbreak(); } while(false)

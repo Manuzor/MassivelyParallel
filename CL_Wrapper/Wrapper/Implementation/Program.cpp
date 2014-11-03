@@ -15,6 +15,8 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
 
   std::stringstream Buffer;
   LoadStringFromFile(Buffer, szFileName);
+  mpLog::Success("Loaded contents of program file '%s'", szFileName);
+
   auto Content = Buffer.str();
   auto ContentCString = Content.c_str();
   auto ContentCharCount = Content.size();
@@ -33,6 +35,10 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
     mpLog::Error("========== Build Failed ==========");
     mpLog::Error(buffer);
     MP_ReportError("Build failed.");
+  }
+  else
+  {
+    mpLog::Success("%s: Build succeeded", szFileName);
   }
 
   return buildResult;

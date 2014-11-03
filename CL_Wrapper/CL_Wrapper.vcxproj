@@ -169,6 +169,7 @@
     <ClInclude Include="Wrapper\Result.h" />
     <ClInclude Include="Wrapper\Assert.h" />
     <ClInclude Include="Wrapper\String.h" />
+    <ClInclude Include="Wrapper\Utilities\Console.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Wrapper\Implementation\Assert.cpp" />
@@ -191,6 +192,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Wrapper/PCH.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Wrapper\Utilities\Implementation\Console.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -2,7 +2,7 @@
 #include "Wrapper/Context.h"
 #include "Wrapper/Device.h"
 
-class mpProgram
+class MP_WrapperAPI mpProgram
 {
 public:
   using Id = cl_program;

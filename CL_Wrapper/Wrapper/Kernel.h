@@ -1,11 +1,16 @@
 #pragma once
+#include "Wrapper/Program.h"
 
-namespace mpKernel
+class MP_WrapperAPI mpKernel
 {
 public:
   using Id = cl_kernel;
 
+  Id m_Id = nullptr;
 public:
 
-  mpKernel();
-}
+  ~mpKernel() { Release(); }
+
+  void Initialize(const mpProgram& Program, const char* szKernelName);
+  void Release();
+};
