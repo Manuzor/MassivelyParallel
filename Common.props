@@ -4,11 +4,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <OutDir>$(SolutionDir)\Output\Bin\$(Platform)$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\Temp\$(Platform)$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)\Temp\$(ProjectName)\$(Platform)$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(CUDA_PATH)\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <ImportLibrary>$(SolutionDir)\Output\Lib\$(Platform)$(Configuration)\$(TargetName).lib</ImportLibrary>

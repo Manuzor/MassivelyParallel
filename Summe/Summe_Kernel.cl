@@ -13,8 +13,24 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
-__kernel void helloworld(__global char* in, __global char* out)
+__kernel void summe_kernel(__global int* in, __global int* out)
 {
-	int num = get_global_id(0);
-	out[num] = in[num] + 1;
+	int gid = get_global_id(0);
+	int lid = get_local_id(0);
+	int groupid = get_group_id(0);
+	
+	__local int localArray[256];
+	
+	// copy data to local array and add pairs of array elements
+	localArray[lid] = in[gid<<1]+in[(gid<<1)+1];
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	for (int n=1 ; n<9 ; n++) {
+		if ((lid<<n) < 256)
+			localArray[lid<<n] = localArray[lid<<n]+localArray[(lid<<n)+(1<<(n-1))];
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+	
+	out[groupid] = localArray[0];
 }
