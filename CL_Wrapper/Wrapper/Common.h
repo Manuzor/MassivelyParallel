@@ -31,6 +31,8 @@ namespace mpInternal
 #define MP_NotImplemented(...) throw mpInternal::NotImplementedException()
 #define MP_OnScopeExit mpInternal::OnScopeExit<std::function<void()>> _scopeExit_ ## __LINE__ = [&]
 
+#define MP_Min(lhs, rhs) ((lhs) < (rhs) ? (lhs) : (rhs))
+
 #include "Wrapper/Result.h"
 #include "Wrapper/Assert.h"
 #include "Wrapper/Logging.h"

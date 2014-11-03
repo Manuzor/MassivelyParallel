@@ -152,25 +152,34 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Wrapper\Api.h" />
+    <ClInclude Include="Wrapper\ArrayPtr.h" />
+    <ClInclude Include="Wrapper\CommandQueue.h" />
     <ClInclude Include="Wrapper\Common.h" />
+    <ClInclude Include="Wrapper\Context.h" />
     <ClInclude Include="Wrapper\Dependencies\OpenCL.h" />
     <ClInclude Include="Wrapper\Dependencies\Stl.h" />
     <ClInclude Include="Wrapper\Dependencies\Windows.h" />
+    <ClInclude Include="Wrapper\Device.h" />
     <ClInclude Include="Wrapper\Error.h" />
-    <ClInclude Include="Wrapper\KernelProgram.h" />
+    <ClInclude Include="Wrapper\Kernel.h" />
     <ClInclude Include="Wrapper\Logging.h" />
     <ClInclude Include="Wrapper\PCH.h" />
     <ClInclude Include="Wrapper\Platform.h" />
+    <ClInclude Include="Wrapper\Program.h" />
     <ClInclude Include="Wrapper\Result.h" />
     <ClInclude Include="Wrapper\Assert.h" />
     <ClInclude Include="Wrapper\String.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Wrapper\Implementation\Assert.cpp" />
+    <ClCompile Include="Wrapper\Implementation\CommandQueue.cpp" />
+    <ClCompile Include="Wrapper\Implementation\Context.cpp" />
+    <ClCompile Include="Wrapper\Implementation\Device.cpp" />
     <ClCompile Include="Wrapper\Implementation\Error.cpp" />
-    <ClCompile Include="Wrapper\Implementation\KernelProgram.cpp" />
+    <ClCompile Include="Wrapper\Implementation\Kernel.cpp" />
     <ClCompile Include="Wrapper\Implementation\Logging.cpp" />
     <ClCompile Include="Wrapper\Implementation\Platform.cpp" />
+    <ClCompile Include="Wrapper\Implementation\Program.cpp" />
     <ClCompile Include="Wrapper\Implementation\String.cpp" />
     <ClCompile Include="Wrapper\PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

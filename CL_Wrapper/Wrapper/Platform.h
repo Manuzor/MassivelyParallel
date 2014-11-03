@@ -1,13 +1,21 @@
 #pragma once
 
-namespace mpPlatform
+class MP_WrapperAPI mpPlatform
 {
-  struct MP_WrapperAPI Handle
-  {
-    cl_platform_id m_PlatformId = nullptr;
+public:
+  using Id = cl_platform_id;
 
-    Handle(cl_platform_id platformId) : m_PlatformId(platformId) {}
-  };
+  static mpPlatform Get();
 
-  MP_WrapperAPI Handle Get();
-}
+public:
+  Id m_Id = nullptr;
+
+public:
+  ~mpPlatform() { Shutdown(); }
+
+private:
+  mpPlatform() {}
+
+  void Initialize();
+  void Shutdown();
+};
