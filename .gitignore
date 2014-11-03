@@ -1,0 +1,8 @@
+Output/
+Temp/
+
+ipch/
+*.sdf
+*.opensdf
+*.suo
+*.user
