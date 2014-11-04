@@ -3,7 +3,19 @@
 
 static void LoadStringFromFile(std::stringstream& out_Buffer, const char* szFileName)
 {
-  std::ifstream file(szFileName);
+  // Windows specific
+  bool bFileExists = GetFileAttributesA(szFileName) != INVALID_FILE_ATTRIBUTES;
+  if (!bFileExists)
+  {
+    MP_ReportError("File not found.");
+  }
+
+  std::ifstream file;
+  file.open(szFileName, std::fstream::in);
+  if (!file.good())
+  {
+    MP_ReportError("Unable to open file.");
+  }
   out_Buffer << file.rdbuf();
 }
 
