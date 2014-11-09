@@ -23,7 +23,9 @@ namespace mpInternal
   };
 }
 
-#define MP_OnScopeExit mpInternal::OnScopeExit<std::function<void()>> _scopeExit_ ## __LINE__ = [&]
+#define MP_ConcatHelper(L, R) L ## R
+#define MP_Concat(L, R) MP_ConcatHelper(L, R)
+#define MP_OnScopeExit mpInternal::OnScopeExit<std::function<void()>> MP_Concat(_scopeExit_, __LINE__) = [&]
 
 #define MP_Min(lhs, rhs) ((lhs) < (rhs) ? (lhs) : (rhs))
 

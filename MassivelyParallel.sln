@@ -11,7 +11,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Matrix", "Matrix\Matrix.vcx
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kernels", "Kernels", "{920C5213-1FAB-4DCC-A152-262639400769}"
 	ProjectSection(SolutionItems) = preProject
+		Kernels\Add1.cl = Kernels\Add1.cl
 		Kernels\Matrix.cl = Kernels\Matrix.cl
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assignments", "Assignments", "{590C115A-E042-4651-962E-A04F5DB9AB66}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Experiments", "Experiments", "{8AFDA41A-4CAA-4499-9755-3639418500E4}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Add1", "Add1\Add1.vcxproj", "{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C8DF60E3-9EE5-4F45-BC91-22A951B6DB5F} = {C8DF60E3-9EE5-4F45-BC91-22A951B6DB5F}
 	EndProjectSection
 EndProject
 Global
@@ -38,8 +48,20 @@ Global
 		{ED290CB7-A2E8-413A-AAD7-C80F0E068C82}.Release|Win32.Build.0 = Release|Win32
 		{ED290CB7-A2E8-413A-AAD7-C80F0E068C82}.Release|x64.ActiveCfg = Release|x64
 		{ED290CB7-A2E8-413A-AAD7-C80F0E068C82}.Release|x64.Build.0 = Release|x64
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}.Debug|Win32.Build.0 = Debug|Win32
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}.Debug|x64.ActiveCfg = Debug|x64
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}.Debug|x64.Build.0 = Debug|x64
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}.Release|Win32.ActiveCfg = Release|Win32
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}.Release|Win32.Build.0 = Release|Win32
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}.Release|x64.ActiveCfg = Release|x64
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{ED290CB7-A2E8-413A-AAD7-C80F0E068C82} = {590C115A-E042-4651-962E-A04F5DB9AB66}
+		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34} = {8AFDA41A-4CAA-4499-9755-3639418500E4}
 	EndGlobalSection
 EndGlobal
