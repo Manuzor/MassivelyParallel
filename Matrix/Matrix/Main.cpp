@@ -2,7 +2,7 @@
 #include "Wrapper/Utilities/Console.h"
 #include "Matrix/Matrix.h"
 
-int main(int argc, char* argv[])
+static void Test1()
 {
   Matrix<4, 2> MatrixLeft;
   MatrixLeft.At<0, 0>() = 1;
@@ -25,6 +25,9 @@ int main(int argc, char* argv[])
   MatrixRight.At<1, 3>() = 8;
 
   auto MatrixResult = MatrixLeft * MatrixRight;
+  static_assert(decltype(MatrixResult)::Cols == 4, "");
+  static_assert(decltype(MatrixResult)::Rows == 4, "");
+
   MP_Assert((MatrixResult.At<0, 0>() == 11), "Wrong Result");
   MP_Assert((MatrixResult.At<1, 0>() == 14), "Wrong Result");
   MP_Assert((MatrixResult.At<2, 0>() == 17), "Wrong Result");
@@ -41,6 +44,29 @@ int main(int argc, char* argv[])
   MP_Assert((MatrixResult.At<1, 3>() == 62), "Wrong Result");
   MP_Assert((MatrixResult.At<2, 3>() == 77), "Wrong Result");
   MP_Assert((MatrixResult.At<3, 3>() == 92), "Wrong Result");
+}
+
+static void Test2()
+{
+  Matrix<4, 4> MatrixLeft;
+  size_t i(0);
+  for(size_t c = 0; c < MatrixLeft.Cols; c++)
+    for(size_t r = 0; r < MatrixLeft.Rows; r++)
+      MatrixLeft.At(r, c) = (Matrix<4, 4>::ElementType)i++;
+
+  Matrix<4, 4> MatrixRight(Identity);
+
+  auto MatrixResult = MatrixLeft * MatrixRight;
+
+  for(size_t c = 0; c < MatrixLeft.Cols; c++)
+    for(size_t r = 0; r < MatrixLeft.Rows; r++)
+      MP_Assert((MatrixResult.At(r, c) == MatrixLeft.At(r, c)), "Identity matrix not working.");
+}
+
+int main(int argc, char* argv[])
+{
+  Test1();
+  Test2();
 
   auto Platform = mpPlatform::Get();
   auto Device = mpDevice::GetGPU(Platform, 0);

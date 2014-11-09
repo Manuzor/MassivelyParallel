@@ -36,7 +36,7 @@ struct MatrixTemplate
     memset(m_Data, 0, Size);
     for(size_t i = 0; i < MP_Min(Rows, Cols); ++i)
     {
-      m_Data[i * i] = (ElementType)1;
+      At(i, i) = (ElementType)1;
     }
   }
 
