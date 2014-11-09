@@ -7,15 +7,21 @@ enum DoNotInit { NoInit };
 template<typename Type, size_t NumRows, size_t NumCols>
 struct MatrixTemplate
 {
+  using ElementType = Type;
+
   enum
   {
     Rows = NumRows,
     Cols = NumCols,
-    Count = Rows * Cols,
-    Size = Count * sizeof(Type)
+
+    Height = Rows, // Alias
+    Width = Cols, // Alias
+
+    Count = NumRows * NumCols,
+    Size = Count * sizeof(ElementType),
   };
 
-  Type* m_Data;
+  ElementType* m_Data;
 
   MatrixTemplate()
   {
@@ -30,7 +36,7 @@ struct MatrixTemplate
     memset(m_Data, 0, Size);
     for(size_t i = 0; i < MP_Min(Rows, Cols); ++i)
     {
-      m_Data[i * i] = (Type)1;
+      m_Data[i * i] = (ElementType)1;
     }
   }
 
@@ -58,7 +64,7 @@ struct MatrixTemplate
   //////////////////////////////////////////////////////////////////////////
 
   template<size_t Row, size_t Col>
-  Type& At()
+  ElementType& At()
   {
     static_assert(Row < Rows, "Row out of bounds");
     static_assert(Col < Cols, "Col out of bounds");
@@ -66,21 +72,21 @@ struct MatrixTemplate
   }
 
   template<size_t Row, size_t Col>
-  const Type& At() const
+  const ElementType& At() const
   {
     static_assert(Row < Rows, "Row out of bounds");
     static_assert(Col < Cols, "Col out of bounds");
     return m_Data[GetIndex(Row, Col)];
   }
 
-  Type& At(size_t Row, size_t Col)
+  ElementType& At(size_t Row, size_t Col)
   {
     MP_Assert(Row < Rows, "Row out of bounds");
     MP_Assert(Col < Cols, "Col out of bounds");
     return m_Data[GetIndex(Row, Col)];
   }
 
-  const Type& At(size_t Row, size_t Col) const
+  const ElementType& At(size_t Row, size_t Col) const
   {
     MP_Assert(Row < Rows, "Row out of bounds");
     MP_Assert(Col < Cols, "Col out of bounds");
@@ -88,13 +94,12 @@ struct MatrixTemplate
   }
 
 private:
-  void AllocateData() { m_Data = new Type[Count]; }
+  void AllocateData() { m_Data = new ElementType[Count]; }
   void ReleaseData() { if(m_Data) { delete[] m_Data; m_Data = nullptr; }}
 
   MP_ForceInline static size_t GetIndex(size_t Row, size_t Col)
   {
-    auto Result = Rows * Col + Row;
-    return Rows * Col + Row;
+    return Height * Col + Row;
   }
 };
 

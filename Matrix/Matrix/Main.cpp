@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   MP_Assert((MatrixResult.At<1, 0>() == 14), "Wrong Result");
   MP_Assert((MatrixResult.At<2, 0>() == 17), "Wrong Result");
   MP_Assert((MatrixResult.At<3, 0>() == 20), "Wrong Result");
-  MP_Assert((MatrixResult.At<0, 1>() == 24), "Wrong Result");
+  MP_Assert((MatrixResult.At<0, 1>() == 23), "Wrong Result");
   MP_Assert((MatrixResult.At<1, 1>() == 30), "Wrong Result");
   MP_Assert((MatrixResult.At<2, 1>() == 37), "Wrong Result");
   MP_Assert((MatrixResult.At<3, 1>() == 44), "Wrong Result");

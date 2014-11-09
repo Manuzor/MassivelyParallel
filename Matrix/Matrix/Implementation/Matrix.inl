@@ -1,13 +1,30 @@
 
-template<typename LhsType, size_t LhsRows, size_t LhsCols,
-         typename RhsType, size_t RhsRows, size_t RhsCols,
-         typename ResultType = decltype(((LhsType)1) * ((RhsType)1))>
+template<typename LhsType,
+         typename RhsType,
+         typename ResultElementType = decltype(((typename LhsType::ElementType)1) * ((typename RhsType::ElementType)1)),
+         typename ResultType = MatrixTemplate<ResultElementType, LhsType::Rows, RhsType::Cols>>
 MP_ForceInline
-MatrixTemplate<ResultType, LhsRows, RhsCols> operator*(const MatrixTemplate<LhsType, LhsRows, LhsCols>& Lhs,
-                                                       const MatrixTemplate<RhsType, RhsRows, RhsCols>& Rhs)
+ResultType operator*(const LhsType& Lhs,
+                     const RhsType& Rhs)
 {
-  static_assert(LhsRows == RhsCols, "The number of rows of the left matrix have to match the number of columns of the right matrix.");
-  MatrixTemplate<ResultType, LhsRows, RhsCols> Result;
+  static_assert(LhsType::Rows == RhsType::Cols, "The number of rows of the left matrix have to match the number of columns of the right matrix.");
+
+  ResultType Result;
+
+  for (size_t r = 0; r < LhsType::Rows; ++r)
+  {
+    for (size_t c = 0; c < RhsType::Cols; ++c)
+    {
+      ResultElementType Current(0);
+
+      for (size_t i = 0; i < LhsType::Cols; ++i)
+      {
+        Current += Lhs.At(r, i) * Rhs.At(i, c);
+      }
+
+      Result.At(r, c) = Current;
+    }
+  }
 
   return std::move(Result);
 }
