@@ -31,3 +31,9 @@ struct mpArrayPtr
     m_uiCount = 0;
   }
 };
+
+template<typename Type, size_t N>
+mpArrayPtr<Type> mpMakeArrayPtr(Type (&Data)[N])
+{
+  return mpArrayPtr<Type>(Data);
+}

@@ -27,7 +27,6 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
 
   std::stringstream Buffer;
   LoadStringFromFile(Buffer, szFileName);
-  mpLog::Success("Loaded contents of program file '%s'", szFileName);
 
   auto Content = Buffer.str();
   auto ContentCString = Content.c_str();
@@ -36,6 +35,8 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
   cl_int status;
   m_Id = clCreateProgramWithSource(Context.m_Id, 1, &ContentCString, &ContentCharCount, &status);
   MP_Verify(status);
+
+  mpLog::Info("Building '%s' . . .", szFileName);
   mpResult buildResult = clBuildProgram(m_Id, 1, &Device.m_Id, nullptr, nullptr, nullptr);
 
   if(buildResult.Failed())
@@ -43,14 +44,8 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
     size_t bufferSize = 1024 * 1024;
     auto buffer = new char[bufferSize];
     MP_OnScopeExit{ delete[] buffer; };
-    clGetProgramBuildInfo(m_Id, Device.m_Id, CL_PROGRAM_BUILD_LOG, bufferSize, buffer, NULL);
-    mpLog::Error("========== Build Failed ==========");
-    mpLog::Error(buffer);
-    MP_ReportError("Build failed.");
-  }
-  else
-  {
-    mpLog::Success("%s: Build succeeded", szFileName);
+    MP_Verify(clGetProgramBuildInfo(m_Id, Device.m_Id, CL_PROGRAM_BUILD_LOG, bufferSize, buffer, NULL));
+    mpLog::Error("---------- Build Failed ----------\n%s", buffer);
   }
 
   return buildResult;

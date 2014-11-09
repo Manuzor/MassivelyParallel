@@ -9,15 +9,10 @@
 #define MP_Inline inline
 #define MP_ForceInline __forceinline
 
+#include "Wrapper/Types.h"
+
 namespace mpInternal
 {
-  class NotImplementedException : public std::exception
-  {
-  public:
-
-    virtual const char* what() const override { return "Not implemented."; }
-  };
-
   template<typename CallableType>
   struct OnScopeExit
   {
@@ -28,7 +23,6 @@ namespace mpInternal
   };
 }
 
-#define MP_NotImplemented(...) throw mpInternal::NotImplementedException()
 #define MP_OnScopeExit mpInternal::OnScopeExit<std::function<void()>> _scopeExit_ ## __LINE__ = [&]
 
 #define MP_Min(lhs, rhs) ((lhs) < (rhs) ? (lhs) : (rhs))
@@ -37,3 +31,5 @@ namespace mpInternal
 #include "Wrapper/Assert.h"
 #include "Wrapper/Logging.h"
 #include "Wrapper/Error.h"
+
+#define MP_NotImplemented MP_ReportError("Not implemented.")

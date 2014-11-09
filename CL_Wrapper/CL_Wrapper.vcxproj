@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="Wrapper\Api.h" />
     <ClInclude Include="Wrapper\ArrayPtr.h" />
+    <ClInclude Include="Wrapper\Buffer.h" />
     <ClInclude Include="Wrapper\CommandQueue.h" />
     <ClInclude Include="Wrapper\Common.h" />
     <ClInclude Include="Wrapper\Context.h" />
@@ -169,10 +170,12 @@
     <ClInclude Include="Wrapper\Result.h" />
     <ClInclude Include="Wrapper\Assert.h" />
     <ClInclude Include="Wrapper\String.h" />
+    <ClInclude Include="Wrapper\Types.h" />
     <ClInclude Include="Wrapper\Utilities\Console.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Wrapper\Implementation\Assert.cpp" />
+    <ClCompile Include="Wrapper\Implementation\Buffer.cpp" />
     <ClCompile Include="Wrapper\Implementation\CommandQueue.cpp" />
     <ClCompile Include="Wrapper\Implementation\Context.cpp" />
     <ClCompile Include="Wrapper\Implementation\Device.cpp" />

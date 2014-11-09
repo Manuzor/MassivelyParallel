@@ -7,3 +7,4 @@
 #include "Wrapper/CommandQueue.h"
 #include "Wrapper/Program.h"
 #include "Wrapper/Kernel.h"
+#include "Wrapper/Buffer.h"
