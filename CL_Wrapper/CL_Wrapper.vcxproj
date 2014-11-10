@@ -169,10 +169,13 @@
     <ClInclude Include="Wrapper\Program.h" />
     <ClInclude Include="Wrapper\Result.h" />
     <ClInclude Include="Wrapper\Assert.h" />
+    <ClInclude Include="Wrapper\Scope.h" />
     <ClInclude Include="Wrapper\String.h" />
     <ClInclude Include="Wrapper\TypeDeclarations.h" />
     <ClInclude Include="Wrapper\Types\Matrix.h" />
     <ClInclude Include="Wrapper\Utilities\Console.h" />
+    <ClInclude Include="Wrapper\Utilities\File.h" />
+    <ClInclude Include="Wrapper\Utilities\String.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Wrapper\Implementation\Assert.cpp" />
@@ -199,6 +202,7 @@
     </ClCompile>
     <ClCompile Include="Wrapper\Types\Implementation\Matrix.cpp" />
     <ClCompile Include="Wrapper\Utilities\Implementation\Console.cpp" />
+    <ClCompile Include="Wrapper\Utilities\Implementation\File.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Wrapper\Types\Implementation\Matrix.inl" />

@@ -4,7 +4,7 @@ enum InitAsIdentity { Identity };
 enum InitAsZero { Zero };
 enum DoNotInit { NoInit };
 
-MP_WrapperAPI void mpLoadMatrixFromFile(size_t uiWidth, size_t uiHeight, void* out_Data, const char* szFileName);
+MP_WrapperAPI void mpLoadMatrixFromFile(const char* szFileName, size_t uiWidth, size_t uiHeight, void* out_Data);
 
 template<typename Type, size_t NumRows, size_t NumCols>
 struct MatrixTemplate
@@ -14,13 +14,10 @@ struct MatrixTemplate
 
   enum
   {
-    Rows = NumRows,
-    Cols = NumCols,
+    Height = NumRows, // Alias
+    Width = NumCols, // Alias
 
-    Height = Rows, // Alias
-    Width = Cols, // Alias
-
-    Count = NumRows * NumCols,
+    Count = Width * Height,
     Size = Count * sizeof(ElementType),
   };
 
@@ -33,11 +30,11 @@ struct MatrixTemplate
 
   MatrixTemplate(InitAsIdentity)
   {
-    static_assert(Rows == Cols, "Only quadratic matrices can be identity matrices");
+    static_assert(Height == Width, "Only quadratic matrices can be identity matrices");
 
     AllocateData();
     memset(m_Data, 0, Size);
-    for(size_t i = 0; i < MP_Min(Rows, Cols); ++i)
+    for(size_t i = 0; i < MP_Min(Height, Width); ++i)
     {
       At(i, i) = (ElementType)1;
     }
@@ -50,7 +47,7 @@ struct MatrixTemplate
   }
 
   template<typename OtherType>
-  MatrixTemplate(MatrixTemplate<OtherType, Rows, Cols>&& Other) :
+  MatrixTemplate(MatrixTemplate<OtherType, Height, Width>&& Other) :
     m_Data(Other.m_Data)
   {
     Other.m_Data = nullptr;
@@ -66,34 +63,34 @@ struct MatrixTemplate
 
   //////////////////////////////////////////////////////////////////////////
 
-  template<size_t Row, size_t Col>
+  template<size_t Y, size_t X>
   ElementType& At()
   {
-    static_assert(Row < Rows, "Row out of bounds");
-    static_assert(Col < Cols, "Col out of bounds");
-    return m_Data[GetIndex(Row, Col)];
+    static_assert(Y < Height, "Row out of bounds");
+    static_assert(X < Width, "Col out of bounds");
+    return m_Data[GetIndex(Y, X)];
   }
 
-  template<size_t Row, size_t Col>
+  template<size_t Y, size_t X>
   const ElementType& At() const
   {
-    static_assert(Row < Rows, "Row out of bounds");
-    static_assert(Col < Cols, "Col out of bounds");
-    return m_Data[GetIndex(Row, Col)];
+    static_assert(Y < Height, "Row out of bounds");
+    static_assert(X < Width, "Col out of bounds");
+    return m_Data[GetIndex(Y, X)];
   }
 
-  ElementType& At(size_t Row, size_t Col)
+  ElementType& At(size_t Y, size_t X)
   {
-    MP_Assert(Row < Rows, "Row out of bounds");
-    MP_Assert(Col < Cols, "Col out of bounds");
-    return m_Data[GetIndex(Row, Col)];
+    MP_Assert(Y < Height, "Row out of bounds");
+    MP_Assert(X < Width, "Col out of bounds");
+    return m_Data[GetIndex(Y, X)];
   }
 
-  const ElementType& At(size_t Row, size_t Col) const
+  const ElementType& At(size_t Y, size_t X) const
   {
-    MP_Assert(Row < Rows, "Row out of bounds");
-    MP_Assert(Col < Cols, "Col out of bounds");
-    return m_Data[GetIndex(Row, Col)];
+    MP_Assert(Y < Height, "Row out of bounds");
+    MP_Assert(X < Width, "Col out of bounds");
+    return m_Data[GetIndex(Y, X)];
   }
 
   // Static
@@ -109,9 +106,9 @@ private:
   void AllocateData() { m_Data = new ElementType[Count]; }
   void ReleaseData() { if(m_Data) { delete[] m_Data; m_Data = nullptr; }}
 
-  MP_ForceInline static size_t GetIndex(size_t Row, size_t Col)
+  MP_ForceInline static size_t GetIndex(size_t Y, size_t X)
   {
-    return Height * Col + Row;
+    return Height * X + Y;
   }
 };
 
@@ -120,7 +117,7 @@ private:
 template<size_t Rows, size_t Cols>
 using mpMatrix = MatrixTemplate<cl_float, Rows, Cols>;
 
-static_assert(mpMatrix<2, 4>::Cols == 4, "");
-static_assert(mpMatrix<2, 4>::Rows == 2, "");
-static_assert(mpMatrix<2, 4>::Count == 4 * 2, "");
-static_assert(mpMatrix<2, 4>::Size == mpMatrix<2, 4>::Count * sizeof(cl_float), "");
+static_assert(mpMatrix<2, 4>::Height == 2, "");
+static_assert(mpMatrix<2, 4>::Width == 4, "");
+static_assert(mpMatrix<2, 4>::Count == 2 * 4, "");
+static_assert(mpMatrix<2, 4>::Size == 2 * 4 * sizeof(cl_float), "");

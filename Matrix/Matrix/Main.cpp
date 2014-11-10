@@ -25,8 +25,8 @@ static void Test1()
   MatrixRight.At<1, 3>() = 8;
 
   auto MatrixResult = MatrixLeft * MatrixRight;
-  static_assert(decltype(MatrixResult)::Cols == 4, "");
-  static_assert(decltype(MatrixResult)::Rows == 4, "");
+  static_assert(decltype(MatrixResult)::Width == 4, "");
+  static_assert(decltype(MatrixResult)::Height == 4, "");
 
   MP_Assert((MatrixResult.At<0, 0>() == 11), "Wrong Result");
   MP_Assert((MatrixResult.At<1, 0>() == 14), "Wrong Result");
@@ -50,24 +50,21 @@ static void Test2()
 {
   mpMatrix<4, 4> MatrixLeft;
   size_t i(0);
-  for(size_t c = 0; c < MatrixLeft.Cols; c++)
-    for(size_t r = 0; r < MatrixLeft.Rows; r++)
+  for(size_t c = 0; c < MatrixLeft.Width; c++)
+    for(size_t r = 0; r < MatrixLeft.Height; r++)
       MatrixLeft.At(r, c) = (mpMatrix<4, 4>::ElementType)i++;
 
   mpMatrix<4, 4> MatrixRight(Identity);
 
   auto MatrixResult = MatrixLeft * MatrixRight;
 
-  for(size_t c = 0; c < MatrixLeft.Cols; c++)
-    for(size_t r = 0; r < MatrixLeft.Rows; r++)
+  for(size_t c = 0; c < MatrixLeft.Width; c++)
+    for(size_t r = 0; r < MatrixLeft.Height; r++)
       MP_Assert((MatrixResult.At(r, c) == MatrixLeft.At(r, c)), "Identity matrix not working.");
 }
 
-int main(int argc, char* argv[])
+static void Test3()
 {
-  Test1();
-  Test2();
-
   auto Platform = mpPlatform::Get();
   auto Device = mpDevice::GetGPU(Platform, 0);
   mpContext Context;
@@ -85,10 +82,19 @@ int main(int argc, char* argv[])
     mpMatrix<1, 1> Right; Right.At<0, 0>() = 1.0f;
     auto Result = Left * Right;
 
-    for(size_t c = 0; c < Left.Cols; c++)
-      for(size_t r = 0; r < Right.Rows; r++)
+    for(size_t c = 0; c < Left.Width; c++)
+      for(size_t r = 0; r < Right.Height; r++)
         mpLog::Info("res: %f", Result.At(r, c));
   }
+}
+
+int main(int argc, char* argv[])
+{
+  auto LoadResult = mpMatrix<2, 4>::FromFile("Data/test.matrix.txt");
+
+  Test1();
+  Test2();
+  Test3();
 
   printf("Press any key to continue . . . ");
   mpUtilities::GetSingleCharacter();

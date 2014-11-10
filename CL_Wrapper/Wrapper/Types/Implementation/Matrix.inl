@@ -2,12 +2,12 @@
 template<typename LhsType,
          typename RhsType,
          typename ResultElementType = decltype(((typename LhsType::ElementType)1) * ((typename RhsType::ElementType)1)),
-         typename ResultType = MatrixTemplate<ResultElementType, LhsType::Rows, RhsType::Cols>>
+         typename ResultType = MatrixTemplate<ResultElementType, LhsType::Height, RhsType::Width>>
 MP_ForceInline
 ResultType operator*(const LhsType& Lhs,
                      const RhsType& Rhs)
 {
-  static_assert(LhsType::Rows == RhsType::Cols, "The number of rows of the left matrix have to match the number of columns of the right matrix.");
+  static_assert(LhsType::Height == RhsType::Width, "The number of rows of the left matrix have to match the number of columns of the right matrix.");
 
   ResultType Result;
 
@@ -30,7 +30,7 @@ ResultType operator*(const LhsType& Lhs,
     pScope->GetKernel().PushArg(ResultBuffer);
 
     {
-      size_t Global[] = { Result.Rows, Result.Cols };
+      size_t Global[] = { Result.Height, Result.Width };
       pScope->GetKernel().Execute(Global);
     }
 
@@ -41,13 +41,13 @@ ResultType operator*(const LhsType& Lhs,
   {
     // Use CPU
     //////////////////////////////////////////////////////////////////////////
-    for (size_t r = 0; r < LhsType::Rows; ++r)
+    for (size_t r = 0; r < LhsType::Height; ++r)
     {
-      for (size_t c = 0; c < RhsType::Cols; ++c)
+      for (size_t c = 0; c < RhsType::Width; ++c)
       {
         ResultElementType Current(0);
 
-        for (size_t i = 0; i < LhsType::Cols; ++i)
+        for (size_t i = 0; i < LhsType::Width; ++i)
         {
           Current += Lhs.At(r, i) * Rhs.At(i, c);
         }

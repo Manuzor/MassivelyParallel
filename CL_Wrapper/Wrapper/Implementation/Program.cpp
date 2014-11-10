@@ -1,23 +1,6 @@
 #include "Wrapper/PCH.h"
 #include "Wrapper/Program.h"
-
-static void LoadStringFromFile(std::stringstream& out_Buffer, const char* szFileName)
-{
-  // Windows specific
-  bool bFileExists = GetFileAttributesA(szFileName) != INVALID_FILE_ATTRIBUTES;
-  if (!bFileExists)
-  {
-    MP_ReportError("File not found.");
-  }
-
-  std::ifstream file;
-  file.open(szFileName, std::fstream::in);
-  if (!file.good())
-  {
-    MP_ReportError("Unable to open file.");
-  }
-  out_Buffer << file.rdbuf();
-}
+#include "Wrapper/Utilities/File.h"
 
 mpResult mpProgram::LoadAndBuild(const mpContext& Context,
                                  const mpDevice& Device,
@@ -25,11 +8,10 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
 {
   Release();
 
-  std::stringstream Buffer;
-  LoadStringFromFile(Buffer, szFileName);
+  std::vector<char> Content;
+  mpLoadStringFromFile(Content, szFileName);
 
-  auto Content = Buffer.str();
-  auto ContentCString = Content.c_str();
+  const char* ContentCString = Content.data();
   auto ContentCharCount = Content.size();
 
   cl_int status;

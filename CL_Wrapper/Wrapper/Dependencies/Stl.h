@@ -4,3 +4,4 @@
 #include <sstream>
 #include <cstdarg>
 #include <fstream>
+#include <vector>
