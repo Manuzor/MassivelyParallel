@@ -32,7 +32,8 @@ void mpKernel::PushArg(const mpBuffer& Buffer)
 
 void mpKernel::Execute(mpArrayPtr<size_t> GlobalWorkSize, mpArrayPtr<size_t> LocalWorkSize)
 {
-  MP_Assert(GlobalWorkSize.m_uiCount == LocalWorkSize.m_uiCount, "Global and Local work sizes must have the same dimensions");
+  MP_Assert(LocalWorkSize.m_Data == nullptr || GlobalWorkSize.m_uiCount == LocalWorkSize.m_uiCount,
+            "Global and Local work sizes must have the same dimensions");
 
   MP_Verify(clEnqueueNDRangeKernel(m_pQueue->m_Id, m_Id,                        // Command queue and kernel
                                    (cl_uint)GlobalWorkSize.m_uiCount, nullptr,  // Work dimensions and global offset

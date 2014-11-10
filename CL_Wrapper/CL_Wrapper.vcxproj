@@ -184,6 +184,7 @@
     <ClCompile Include="Wrapper\Implementation\Logging.cpp" />
     <ClCompile Include="Wrapper\Implementation\Platform.cpp" />
     <ClCompile Include="Wrapper\Implementation\Program.cpp" />
+    <ClCompile Include="Wrapper\Implementation\Scope.cpp" />
     <ClCompile Include="Wrapper\Implementation\String.cpp" />
     <ClCompile Include="Wrapper\PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

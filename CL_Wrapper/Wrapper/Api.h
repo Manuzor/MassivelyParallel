@@ -8,3 +8,4 @@
 #include "Wrapper/Program.h"
 #include "Wrapper/Kernel.h"
 #include "Wrapper/Buffer.h"
+#include "Wrapper/Scope.h"

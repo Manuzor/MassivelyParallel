@@ -12,6 +12,12 @@ struct mpArrayPtr
   {
   }
 
+  mpArrayPtr(nullptr_t) :
+    m_Data(nullptr),
+    m_uiCount(0)
+  {
+  }
+
   template<size_t N>
   mpArrayPtr(Type (&Data)[N]) :
     m_Data(Data),
@@ -36,4 +42,10 @@ template<typename Type, size_t N>
 mpArrayPtr<Type> mpMakeArrayPtr(Type (&Data)[N])
 {
   return mpArrayPtr<Type>(Data);
+}
+
+template<typename Type>
+mpArrayPtr<Type> mpMakeArrayPtr(Type* Data, size_t uiCount)
+{
+  return mpArrayPtr<Type>(Data, uiCount);
 }

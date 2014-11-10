@@ -27,14 +27,21 @@ public:
     ++m_uiCurrentArgCount;
   }
 
-  void Execute(size_t uiNumGlobalWorkGroups, size_t uiWorkGroupSize)
+  void Execute(size_t uiGlobalWorkSize, size_t uiLocalWorkSize = 0)
   {
-    size_t G[] { uiNumGlobalWorkGroups * uiWorkGroupSize };
-    size_t L[] { uiWorkGroupSize };
-    Execute(G, L);
+    size_t G[] { uiGlobalWorkSize };
+    if (uiLocalWorkSize > 0)
+    {
+      size_t L[] { uiLocalWorkSize };
+      Execute(G, L);
+    }
+    else
+    {
+      Execute(G, nullptr);
+    }
   }
 
-  void Execute(mpArrayPtr<size_t> GlobalWorkSize, mpArrayPtr<size_t> LocalWorkSize);
+  void Execute(mpArrayPtr<size_t> GlobalWorkSize, mpArrayPtr<size_t> LocalWorkSize = nullptr);
 
 private:
   cl_uint m_uiCurrentArgCount = 0;

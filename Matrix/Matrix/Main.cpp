@@ -77,37 +77,17 @@ int main(int argc, char* argv[])
   mpProgram Program;
   MP_Verify(Program.LoadAndBuild(Context, Device, "Kernels/Matrix.cl"));
   mpKernel Kernel;
-  Kernel.Initialize(Commands, Program, "add1");
+  Kernel.Initialize(Commands, Program, "multiply");
 
-  const size_t uiIntegersCount = 8;
-  cl_int Integers[uiIntegersCount];
-
-  for (size_t i = 0; i < uiIntegersCount; ++i)
   {
-    Integers[i] = (cl_int)i;
-    mpLog::Info("in : %u", i);
-  }
+    MP_GPUScope(Context, Commands, Kernel);
+    Matrix<1, 1> Left;  Left.At<0, 0>() = 1.0f;
+    Matrix<1, 1> Right; Right.At<0, 0>() = 1.0f;
+    auto Result = Left * Right;
 
-  mpBuffer IntegerBuffer;
-  IntegerBuffer.Initialize(Context, mpBufferFlags::ReadOnly, mpMakeArrayPtr(Integers));
-
-  mpBuffer Output;
-  Output.Initialize(Context, mpBufferFlags::WriteOnly, uiIntegersCount * sizeof(cl_int));
-
-  Kernel.PushArg(IntegerBuffer);
-  Kernel.PushArg(Output);
-
-  Kernel.Execute(8, 1);
-
-  cl_int Result[uiIntegersCount];
-
-  // Blocks until the kernel finished executing.
-  Output.ReadInto(mpMakeArrayPtr(Result), Commands);
-  mpLog::Info("");
-
-  for (size_t i = 0; i < uiIntegersCount; ++i)
-  {
-    mpLog::Info("out: %u", Result[i]);
+    for(size_t c = 0; c < Left.Cols; c++)
+      for(size_t r = 0; r < Right.Rows; r++)
+        mpLog::Info("res: %f", Result.At(r, c));
   }
 
   printf("Press any key to continue . . . ");

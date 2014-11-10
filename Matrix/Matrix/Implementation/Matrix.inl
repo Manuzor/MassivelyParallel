@@ -11,18 +11,49 @@ ResultType operator*(const LhsType& Lhs,
 
   ResultType Result;
 
-  for (size_t r = 0; r < LhsType::Rows; ++r)
+  auto pScope = mpGPUScope::GetCurrentScope();
+  if (pScope)
   {
-    for (size_t c = 0; c < RhsType::Cols; ++c)
+    // Use GPU
+    //////////////////////////////////////////////////////////////////////////
+    mpBuffer LhsBuffer;
+    LhsBuffer.Initialize(pScope->GetContext(), mpBufferFlags::ReadOnly, mpMakeArrayPtr(Lhs.m_Data, Lhs.Count));
+
+    mpBuffer RhsBuffer;
+    RhsBuffer.Initialize(pScope->GetContext(), mpBufferFlags::ReadOnly, mpMakeArrayPtr(Rhs.m_Data, Rhs.Count));
+
+    mpBuffer ResultBuffer;
+    ResultBuffer.Initialize(pScope->GetContext(), mpBufferFlags::WriteOnly, Result.Size);
+
+    pScope->GetKernel().PushArg(LhsBuffer);
+    pScope->GetKernel().PushArg(RhsBuffer);
+    pScope->GetKernel().PushArg(ResultBuffer);
+
     {
-      ResultElementType Current(0);
+      size_t Global[] = { Result.Rows, Result.Cols };
+      pScope->GetKernel().Execute(Global);
+    }
 
-      for (size_t i = 0; i < LhsType::Cols; ++i)
+    // Blocks until the kernel finished executing.
+    ResultBuffer.ReadInto(mpMakeArrayPtr(Result.m_Data, Result.Count), pScope->GetCommandQueue());
+  }
+  else
+  {
+    // Use CPU
+    //////////////////////////////////////////////////////////////////////////
+    for (size_t r = 0; r < LhsType::Rows; ++r)
+    {
+      for (size_t c = 0; c < RhsType::Cols; ++c)
       {
-        Current += Lhs.At(r, i) * Rhs.At(i, c);
-      }
+        ResultElementType Current(0);
 
-      Result.At(r, c) = Current;
+        for (size_t i = 0; i < LhsType::Cols; ++i)
+        {
+          Current += Lhs.At(r, i) * Rhs.At(i, c);
+        }
+
+        Result.At(r, c) = Current;
+      }
     }
   }
 
