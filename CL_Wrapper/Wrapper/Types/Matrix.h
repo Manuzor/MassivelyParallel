@@ -4,9 +4,12 @@ enum InitAsIdentity { Identity };
 enum InitAsZero { Zero };
 enum DoNotInit { NoInit };
 
+MP_WrapperAPI void mpLoadMatrixFromFile(size_t uiWidth, size_t uiHeight, void* out_Data, const char* szFileName);
+
 template<typename Type, size_t NumRows, size_t NumCols>
 struct MatrixTemplate
 {
+  using SelfType = MatrixTemplate<Type, NumRows, NumCols>;
   using ElementType = Type;
 
   enum
@@ -93,6 +96,15 @@ struct MatrixTemplate
     return m_Data[GetIndex(Row, Col)];
   }
 
+  // Static
+  //////////////////////////////////////////////////////////////////////////
+  MP_ForceInline static MatrixTemplate FromFile(const char* szFileName)
+  {
+    MatrixTemplate Result;
+    mpLoadMatrixFromFile(szFileName, Result.Height, Result.Width, Result.m_Data);
+    return std::move(Result);
+  }
+
 private:
   void AllocateData() { m_Data = new ElementType[Count]; }
   void ReleaseData() { if(m_Data) { delete[] m_Data; m_Data = nullptr; }}
@@ -103,12 +115,12 @@ private:
   }
 };
 
-#include "Matrix/Implementation/Matrix.inl"
+#include "Wrapper/Types/Implementation/Matrix.inl"
 
 template<size_t Rows, size_t Cols>
-using Matrix = MatrixTemplate<cl_float, Rows, Cols>;
+using mpMatrix = MatrixTemplate<cl_float, Rows, Cols>;
 
-static_assert(Matrix<2, 4>::Cols == 4, "");
-static_assert(Matrix<2, 4>::Rows == 2, "");
-static_assert(Matrix<2, 4>::Count == 4 * 2, "");
-static_assert(Matrix<2, 4>::Size == Matrix<2, 4>::Count * sizeof(cl_float), "");
+static_assert(mpMatrix<2, 4>::Cols == 4, "");
+static_assert(mpMatrix<2, 4>::Rows == 2, "");
+static_assert(mpMatrix<2, 4>::Count == 4 * 2, "");
+static_assert(mpMatrix<2, 4>::Size == mpMatrix<2, 4>::Count * sizeof(cl_float), "");

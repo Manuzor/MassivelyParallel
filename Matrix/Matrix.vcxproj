@@ -185,11 +185,7 @@
   <ItemGroup>
     <ClInclude Include="Matrix\Common.h" />
     <ClInclude Include="Matrix\Dependencies\Stl.h" />
-    <ClInclude Include="Matrix\Matrix.h" />
     <ClInclude Include="Matrix\PCH.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Matrix\Implementation\Matrix.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -9,7 +9,7 @@
 #define MP_Inline inline
 #define MP_ForceInline __forceinline
 
-#include "Wrapper/Types.h"
+#include "Wrapper/TypeDeclarations.h"
 
 namespace mpInternal
 {

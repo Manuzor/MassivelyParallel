@@ -1,10 +1,10 @@
 #include "Matrix/PCH.h"
 #include "Wrapper/Utilities/Console.h"
-#include "Matrix/Matrix.h"
+#include "Wrapper/Types/Matrix.h"
 
 static void Test1()
 {
-  Matrix<4, 2> MatrixLeft;
+  mpMatrix<4, 2> MatrixLeft;
   MatrixLeft.At<0, 0>() = 1;
   MatrixLeft.At<1, 0>() = 2;
   MatrixLeft.At<2, 0>() = 3;
@@ -14,7 +14,7 @@ static void Test1()
   MatrixLeft.At<2, 1>() = 7;
   MatrixLeft.At<3, 1>() = 8;
 
-  Matrix<2, 4> MatrixRight;
+  mpMatrix<2, 4> MatrixRight;
   MatrixRight.At<0, 0>() = 1;
   MatrixRight.At<1, 0>() = 2;
   MatrixRight.At<0, 1>() = 3;
@@ -48,13 +48,13 @@ static void Test1()
 
 static void Test2()
 {
-  Matrix<4, 4> MatrixLeft;
+  mpMatrix<4, 4> MatrixLeft;
   size_t i(0);
   for(size_t c = 0; c < MatrixLeft.Cols; c++)
     for(size_t r = 0; r < MatrixLeft.Rows; r++)
-      MatrixLeft.At(r, c) = (Matrix<4, 4>::ElementType)i++;
+      MatrixLeft.At(r, c) = (mpMatrix<4, 4>::ElementType)i++;
 
-  Matrix<4, 4> MatrixRight(Identity);
+  mpMatrix<4, 4> MatrixRight(Identity);
 
   auto MatrixResult = MatrixLeft * MatrixRight;
 
@@ -81,8 +81,8 @@ int main(int argc, char* argv[])
 
   {
     MP_GPUScope(Context, Commands, Kernel);
-    Matrix<1, 1> Left;  Left.At<0, 0>() = 1.0f;
-    Matrix<1, 1> Right; Right.At<0, 0>() = 1.0f;
+    mpMatrix<1, 1> Left;  Left.At<0, 0>() = 1.0f;
+    mpMatrix<1, 1> Right; Right.At<0, 0>() = 1.0f;
     auto Result = Left * Right;
 
     for(size_t c = 0; c < Left.Cols; c++)

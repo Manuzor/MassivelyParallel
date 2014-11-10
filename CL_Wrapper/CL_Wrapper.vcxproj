@@ -170,7 +170,8 @@
     <ClInclude Include="Wrapper\Result.h" />
     <ClInclude Include="Wrapper\Assert.h" />
     <ClInclude Include="Wrapper\String.h" />
-    <ClInclude Include="Wrapper\Types.h" />
+    <ClInclude Include="Wrapper\TypeDeclarations.h" />
+    <ClInclude Include="Wrapper\Types\Matrix.h" />
     <ClInclude Include="Wrapper\Utilities\Console.h" />
   </ItemGroup>
   <ItemGroup>
@@ -196,7 +197,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Wrapper/PCH.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Wrapper\Types\Implementation\Matrix.cpp" />
     <ClCompile Include="Wrapper\Utilities\Implementation\Console.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Wrapper\Types\Implementation\Matrix.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
