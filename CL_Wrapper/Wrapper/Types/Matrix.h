@@ -53,7 +53,12 @@ struct MatrixTemplate
     Other.m_Data = nullptr;
   }
 
-  MatrixTemplate(const MatrixTemplate&) = delete;
+  MatrixTemplate(const MatrixTemplate& Other)
+  {
+    AllocateData();
+    memcpy(m_Data, Other.m_Data, Size);
+  }
+
   void operator=(const MatrixTemplate&) = delete;
 
   ~MatrixTemplate()
