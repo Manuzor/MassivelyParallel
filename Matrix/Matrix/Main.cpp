@@ -1,6 +1,7 @@
 #include "Matrix/PCH.h"
 #include "Wrapper/Utilities/Console.h"
 #include "Wrapper/Types/Matrix.h"
+#include "Wrapper/Utilities/Math.h"
 
 static void Test1()
 {
@@ -78,7 +79,7 @@ static void Test3()
   mpProgram Program;
   MP_Verify(Program.LoadAndBuild(Context, Device, "Kernels/Matrix.cl"));
   mpKernel Kernel;
-  Kernel.Initialize(Commands, Program, "multiply");
+  Kernel.Initialize(Commands, Program, "MultiplyMatrix");
 
   {
     MP_GPUScope(Context, Commands, Kernel);
@@ -131,17 +132,48 @@ static void Test5()
   MP_Assert(Left.GetHeight() == 16 && Left.GetWidth() == 16, "Invalid result.");
 
   auto Right = Left;
-  auto Result = Left * Right;
+
+  mpLog::Info("Calculating result on the CPU...");
+  auto CPUResult = Left * Right;
+
+  auto Platform = mpPlatform::Get();
+  auto Device = mpDevice::GetGPU(Platform, 0);
+  mpContext Context;
+  Context.Initialize(Device);
+  mpCommandQueue Commands;
+  Commands.Initialize(Context, Device);
+  mpProgram Program;
+  MP_Verify(Program.LoadAndBuild(Context, Device, "Kernels/Matrix.cl"));
+  mpKernel Kernel;
+  Kernel.Initialize(Commands, Program, "MultiplyMatrix");
+
+  {
+    MP_GPUScope(Context, Commands, Kernel);
+
+    mpLog::Info("Calculating result on the GPU...");
+    auto GPUResult = Left * Right;
+
+    MP_Assert(GPUResult.GetHeight() == CPUResult.GetHeight(), "Invalid height");
+    MP_Assert(GPUResult.GetWidth() == CPUResult.GetWidth(), "Invalid width");
+
+    for(size_t c = 0; c < CPUResult.GetWidth(); c++)
+      for(size_t r = 0; r < CPUResult.GetHeight(); r++)
+      {
+        auto gpu = GPUResult.At(r, c);
+        auto cpu = CPUResult.At(r, c);
+        MP_Assert(mpMath::IsEqual(gpu, cpu, 0.01f), "Invalid result.");
+      }
+  }
 
   mpLog::Success("Test5 completed.");
 }
 
 int main(int argc, char* argv[])
 {
-  Test1();
-  Test2();
-  Test3();
-  Test4();
+  //Test1();
+  //Test2();
+  //Test3();
+  //Test4();
   Test5();
 
   printf("\nPress any key to quit . . . ");

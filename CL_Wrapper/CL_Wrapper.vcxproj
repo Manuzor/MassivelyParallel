@@ -164,6 +164,7 @@
     <ClInclude Include="Wrapper\Error.h" />
     <ClInclude Include="Wrapper\Kernel.h" />
     <ClInclude Include="Wrapper\Logging.h" />
+    <ClInclude Include="Wrapper\Utilities\Math.h" />
     <ClInclude Include="Wrapper\PCH.h" />
     <ClInclude Include="Wrapper\Platform.h" />
     <ClInclude Include="Wrapper\Program.h" />

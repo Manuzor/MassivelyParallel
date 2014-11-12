@@ -6,7 +6,7 @@ MP_ForceInline
 ResultType operator*(LhsType& Lhs,
                      RhsType& Rhs)
 {
-  MP_Assert(Lhs.GetHeight() == Rhs.GetWidth(), "The number of rows of the left matrix have to match the number of columns of the right matrix.");
+  MP_Assert(Lhs.GetWidth() == Rhs.GetHeight(), "The number of rows of the left matrix have to match the number of columns of the right matrix.");
 
   ResultType Result(Lhs.GetHeight(), Rhs.GetWidth());
 
@@ -30,13 +30,24 @@ ResultType operator*(LhsType& Lhs,
                             mpBufferFlags::WriteOnly,
                             Result.GetByteCount());
 
+    pScope->GetKernel().PushArg((cl_int)Lhs.GetHeight());
+    pScope->GetKernel().PushArg((cl_int)Lhs.GetWidth());
     pScope->GetKernel().PushArg(LhsBuffer);
+    pScope->GetKernel().PushArg((cl_int)Rhs.GetHeight());
+    pScope->GetKernel().PushArg((cl_int)Rhs.GetWidth());
     pScope->GetKernel().PushArg(RhsBuffer);
     pScope->GetKernel().PushArg(ResultBuffer);
 
     {
-      size_t Global[] = { Result.GetHeight(), Result.GetWidth() };
-      pScope->GetKernel().Execute(Global);
+      if (Result.GetElementCount() == 1)
+      {
+        pScope->GetKernel().Execute(1);
+      }
+      else
+      {
+        size_t Global[] = { Result.GetHeight(), Result.GetWidth() };
+        pScope->GetKernel().Execute(Global);
+      }
     }
 
     // Blocks until the kernel finished executing.

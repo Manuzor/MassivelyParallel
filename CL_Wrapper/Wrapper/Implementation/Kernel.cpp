@@ -39,6 +39,6 @@ void mpKernel::Execute(mpArrayPtr<size_t> GlobalWorkSize, mpArrayPtr<size_t> Loc
                                    (cl_uint)GlobalWorkSize.m_uiCount, nullptr,  // Work dimensions and global offset
                                    GlobalWorkSize.m_Data, LocalWorkSize.m_Data, // Global and local work sizes
                                    0, nullptr, nullptr));                       // Event stuff
-
+  mpLog::Info("Kernel is running.");
   m_uiCurrentArgCount = 0;
 }

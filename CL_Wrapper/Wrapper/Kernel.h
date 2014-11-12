@@ -23,7 +23,7 @@ public:
   template<typename ValueType>
   void PushArg(const ValueType& Value)
   {
-    clSetKernelArg(m_Id, m_uiCurrentArgCount, sizeof(ValueType), (const void*)&Value);
+    MP_Verify(clSetKernelArg(m_Id, m_uiCurrentArgCount, sizeof(ValueType), (const void*)&Value));
     ++m_uiCurrentArgCount;
   }
 
