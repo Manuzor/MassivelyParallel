@@ -6,3 +6,5 @@ ipch/
 *.opensdf
 *.suo
 *.user
+
+Data/HugeRandomMatrix.txt

@@ -129,15 +129,17 @@ static void Test4()
 
 static void Test5(const char* szFileName)
 {
+  mpLog::Info("Loading matrix data from file '%s'", szFileName);
   auto Left = mpMatrix::FromFile(szFileName);
-  MP_Assert(Left.GetHeight() == 16 && Left.GetWidth() == 16, "Invalid result.");
+  mpLog::Info("Loaded a %ux%u matrix.", Left.GetHeight(), Left.GetWidth());
 
   auto Right = Left;
 
   mpLog::Info("Calculating result on the CPU...");
   auto Beginning = mpTime::Now();
   auto CPUResult = Left * Right;
-  mpLog::Success("CPU calculation done in %f seconds.", mpTime::Now() - Beginning);
+  auto CPUTime = mpTime::Now() - Beginning;
+  mpLog::Success("CPU calculation done in %f seconds.", CPUTime);
 
   auto Platform = mpPlatform::Get();
   auto Device = mpDevice::GetGPU(Platform, 0);
@@ -156,18 +158,31 @@ static void Test5(const char* szFileName)
     mpLog::Info("Calculating result on the GPU...");
     auto Beginning = mpTime::Now();
     auto GPUResult = Left * Right;
-    mpLog::Success("GPU calculation done in %f seconds.", mpTime::Now() - Beginning);
+    auto GPUTime = mpTime::Now() - Beginning;
+    mpLog::Success("GPU calculation done in %f seconds.", GPUTime);
 
     MP_Assert(GPUResult.GetHeight() == CPUResult.GetHeight(), "Invalid height");
     MP_Assert(GPUResult.GetWidth() == CPUResult.GetWidth(), "Invalid width");
 
     for(size_t c = 0; c < CPUResult.GetWidth(); c++)
+    {
       for(size_t r = 0; r < CPUResult.GetHeight(); r++)
       {
         auto gpu = GPUResult(r, c);
         auto cpu = CPUResult(r, c);
-        MP_Assert(mpMath::IsEqual(gpu, cpu, 0.01f), "Invalid result.");
+        MP_Assert(mpMath::IsEqual(gpu, cpu, 0.1f), "Invalid result.");
       }
+    }
+
+    if (CPUTime < GPUTime)
+    {
+      mpLog::Info("The CPU was %f seconds faster than the GPU.", (GPUTime - CPUTime).GetSeconds());
+    }
+    else
+    {
+      mpLog::Info("The GPU was %f seconds faster than the CPU.", (CPUTime - GPUTime).GetSeconds());
+    }
+
   }
 
   mpLog::Success("Test5 completed.\n");
@@ -180,7 +195,7 @@ int main(int argc, char* argv[])
   //Test2();
   //Test3();
   //Test4();
-  Test5("Data/16x16_random.matrix.txt");
+  Test5("Data/HugeRandomMatrix.txt");
 
   mpLog::Info("Needed %f seconds in total.", mpTime::Now() - Beginning);
 

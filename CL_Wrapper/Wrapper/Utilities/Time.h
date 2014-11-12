@@ -4,6 +4,7 @@
 */
 
 #pragma once
+#include "Wrapper/Utilities/Math.h"
 
 /// \brief The time class encapsulates a double value storing the time in seconds.
 ///
@@ -89,5 +90,11 @@ mpTime operator* (double f, mpTime t);
 
 mpTime operator/ (mpTime t, double f);
 mpTime operator/ (double f, mpTime t);
+
+template<>
+struct mpMathType<mpTime>
+{
+  MP_ForceInline static mpTime CalcAbs(const mpTime& Time) { return mpTime::Seconds(fabs(Time.GetSeconds()));}
+};
 
 #include "Wrapper/Utilities/Implementation/Time.inl"
