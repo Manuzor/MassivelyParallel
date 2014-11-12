@@ -2,6 +2,7 @@
 #include "Wrapper/Utilities/Console.h"
 #include "Wrapper/Types/Matrix.h"
 #include "Wrapper/Utilities/Math.h"
+#include "Wrapper/Utilities/Time.h"
 
 static void Test1()
 {
@@ -170,11 +171,14 @@ static void Test5()
 
 int main(int argc, char* argv[])
 {
-  //Test1();
-  //Test2();
-  //Test3();
-  //Test4();
+  auto Beginning = mpTime::Now();
+  Test1();
+  Test2();
+  Test3();
+  Test4();
   Test5();
+
+  mpLog::Info("\n===> Needed %f seconds in total.", mpTime::Now() - Beginning);
 
   printf("\nPress any key to quit . . . ");
   mpUtilities::GetSingleCharacter();
