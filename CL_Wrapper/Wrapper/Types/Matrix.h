@@ -6,60 +6,75 @@ enum DoNotInit { NoInit };
 
 MP_WrapperAPI void mpLoadMatrixFromFile(const char* szFileName, size_t uiWidth, size_t uiHeight, void* out_Data);
 
-template<typename Type, size_t NumRows, size_t NumCols>
+template<typename Type>
 struct MatrixTemplate
 {
-  using SelfType = MatrixTemplate<Type, NumRows, NumCols>;
   using ElementType = Type;
 
-  enum
-  {
-    Height = NumRows, // Alias
-    Width = NumCols, // Alias
-
-    Count = Width * Height,
-    Size = Count * sizeof(ElementType),
-  };
-
-  ElementType* m_Data;
-
-  MatrixTemplate()
+  MatrixTemplate(size_t uiHeight, size_t uiWidth) :
+    m_uiHeight(uiHeight),
+    m_uiWidth(uiWidth)
   {
     AllocateData();
   }
 
-  MatrixTemplate(InitAsIdentity)
+  MatrixTemplate(size_t uiHeight, size_t uiWidth, InitAsIdentity) :
+    m_uiHeight(uiHeight),
+    m_uiWidth(uiWidth)
   {
-    static_assert(Height == Width, "Only quadratic matrices can be identity matrices");
+    MP_Assert(m_uiHeight == m_uiWidth, "Only quadratic matrices can be identity matrices");
 
     AllocateData();
-    memset(m_Data, 0, Size);
-    for(size_t i = 0; i < MP_Min(Height, Width); ++i)
+    memset(m_Data, 0, GetByteCount());
+    for(size_t i = 0; i < m_uiHeight; ++i)
     {
       At(i, i) = (ElementType)1;
     }
   }
 
-  MatrixTemplate(InitAsZero)
+  MatrixTemplate(size_t uiHeight, size_t uiWidth, InitAsZero) :
+    m_uiHeight(uiHeight),
+    m_uiWidth(uiWidth)
   {
     AllocateData();
     memset(m_Data, 0, Size);
   }
 
-  template<typename OtherType>
-  MatrixTemplate(MatrixTemplate<OtherType, Height, Width>&& Other) :
+  MatrixTemplate(MatrixTemplate&& Other)  :
+    m_uiHeight(Other.m_uiHeight),
+    m_uiWidth(Other.m_uiWidth),
     m_Data(Other.m_Data)
   {
     Other.m_Data = nullptr;
+    Other.m_uiWidth = 0;
+    Other.m_uiHeight = 0;
   }
 
-  MatrixTemplate(const MatrixTemplate& Other)
+  MatrixTemplate(const MatrixTemplate& Other) :
+    m_uiHeight(Other.m_uiHeight),
+    m_uiWidth(Other.m_uiWidth)
   {
     AllocateData();
     memcpy(m_Data, Other.m_Data, Size);
   }
 
-  void operator=(const MatrixTemplate&) = delete;
+  void operator=(MatrixTemplate Copy)
+  {
+    using namespace std;
+    swap(m_uiHeight, Copy.m_uiHeight);
+    swap(m_uiWidth, Copy.m_uiWidth);
+    swap(m_Data, Copy.m_Data);
+  }
+
+  void operator=(MatrixTemplate&& ToMove)
+  {
+    if(&ToMove == this)
+      return;
+
+    m_Data = ToMove.m_Data; ToMove.m_Data = nullptr;
+    m_uiHeight = ToMove.m_uiHeight; ToMove.m_uiHeight = nullptr;
+    m_uiWidth = ToMove.m_uiWidth; ToMove.m_uiWidth = nullptr;
+  }
 
   ~MatrixTemplate()
   {
@@ -68,35 +83,27 @@ struct MatrixTemplate
 
   //////////////////////////////////////////////////////////////////////////
 
-  template<size_t Y, size_t X>
-  ElementType& At()
-  {
-    static_assert(Y < Height, "Row out of bounds");
-    static_assert(X < Width, "Col out of bounds");
-    return m_Data[GetIndex(Y, X)];
-  }
-
-  template<size_t Y, size_t X>
-  const ElementType& At() const
-  {
-    static_assert(Y < Height, "Row out of bounds");
-    static_assert(X < Width, "Col out of bounds");
-    return m_Data[GetIndex(Y, X)];
-  }
-
   ElementType& At(size_t Y, size_t X)
   {
-    MP_Assert(Y < Height, "Row out of bounds");
-    MP_Assert(X < Width, "Col out of bounds");
+    MP_Assert(Y < m_uiHeight, "Row out of bounds");
+    MP_Assert(X < m_uiWidth, "Col out of bounds");
     return m_Data[GetIndex(Y, X)];
   }
 
   const ElementType& At(size_t Y, size_t X) const
   {
-    MP_Assert(Y < Height, "Row out of bounds");
-    MP_Assert(X < Width, "Col out of bounds");
+    MP_Assert(Y < m_uiHeight, "Row out of bounds");
+    MP_Assert(X < m_uiWidth, "Col out of bounds");
     return m_Data[GetIndex(Y, X)];
   }
+
+  MP_ForceInline size_t GetWidth() const { return m_uiWidth; }
+  MP_ForceInline size_t GetHeight() const { return m_uiHeight; }
+  MP_ForceInline ElementType* GetData() { return m_Data; }
+  MP_ForceInline const ElementType* GetData() const { return m_Data; }
+
+  MP_ForceInline size_t GetElementCount() const { return m_uiWidth * m_uiHeight; }
+  MP_ForceInline size_t GetByteCount() const { return GetElementCount() * sizeof(ElementType); }
 
   // Static
   //////////////////////////////////////////////////////////////////////////
@@ -108,21 +115,19 @@ struct MatrixTemplate
   }
 
 private:
-  void AllocateData() { m_Data = new ElementType[Count]; }
-  void ReleaseData() { if(m_Data) { delete[] m_Data; m_Data = nullptr; }}
+  size_t m_uiWidth;
+  size_t m_uiHeight;
+  ElementType* m_Data;
 
-  MP_ForceInline static size_t GetIndex(size_t Y, size_t X)
+  void AllocateData() { m_Data = new ElementType[GetElementCount()]; }
+  void ReleaseData() { if(m_Data) { delete[] m_Data; m_Data = nullptr; } }
+
+  MP_ForceInline size_t GetIndex(size_t Y, size_t X) const
   {
-    return Height * X + Y;
+    return m_uiHeight * X + Y;
   }
 };
 
 #include "Wrapper/Types/Implementation/Matrix.inl"
 
-template<size_t Rows, size_t Cols>
-using mpMatrix = MatrixTemplate<cl_float, Rows, Cols>;
-
-static_assert(mpMatrix<2, 4>::Height == 2, "");
-static_assert(mpMatrix<2, 4>::Width == 4, "");
-static_assert(mpMatrix<2, 4>::Count == 2 * 4, "");
-static_assert(mpMatrix<2, 4>::Size == 2 * 4 * sizeof(cl_float), "");
+using mpMatrix = MatrixTemplate<cl_float>;
