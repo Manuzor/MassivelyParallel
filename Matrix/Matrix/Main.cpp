@@ -161,6 +161,20 @@ static void Test5(const char* szFileName)
     auto GPUTime = mpTime::Now() - Beginning;
     mpLog::Success("GPU calculation done in %f seconds.", GPUTime);
 
+    if (CPUTime < GPUTime)
+    {
+      mpLog::Info("The CPU was %f seconds faster than the GPU.",
+                  (GPUTime - CPUTime).GetSeconds());
+    }
+    else
+    {
+      mpLog::Info("The GPU was %f seconds faster than the CPU.",
+                  (CPUTime - GPUTime).GetSeconds());
+    }
+
+    auto comparisonEpsilon = 0.1f;
+    mpLog::Info("Comparing CPU and GPU results with an epsilon of %f", comparisonEpsilon);
+
     MP_Assert(GPUResult.GetHeight() == CPUResult.GetHeight(), "Invalid height");
     MP_Assert(GPUResult.GetWidth() == CPUResult.GetWidth(), "Invalid width");
 
@@ -170,19 +184,9 @@ static void Test5(const char* szFileName)
       {
         auto gpu = GPUResult(r, c);
         auto cpu = CPUResult(r, c);
-        MP_Assert(mpMath::IsEqual(gpu, cpu, 0.1f), "Invalid result.");
+        MP_Assert(mpMath::IsEqual(gpu, cpu, comparisonEpsilon), "Invalid result.");
       }
     }
-
-    if (CPUTime < GPUTime)
-    {
-      mpLog::Info("The CPU was %f seconds faster than the GPU.", (GPUTime - CPUTime).GetSeconds());
-    }
-    else
-    {
-      mpLog::Info("The GPU was %f seconds faster than the CPU.", (CPUTime - GPUTime).GetSeconds());
-    }
-
   }
 
   mpLog::Success("Test5 completed.\n");
