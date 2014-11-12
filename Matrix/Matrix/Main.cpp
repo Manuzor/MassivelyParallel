@@ -47,7 +47,7 @@ static void Test1()
   MP_Assert((MatrixResult(2, 3) == 77), "Wrong Result");
   MP_Assert((MatrixResult(3, 3) == 92), "Wrong Result");
 
-  mpLog::Success("Test1 completed.");
+  mpLog::Success("Test1 completed.\n");
 }
 
 static void Test2()
@@ -66,7 +66,7 @@ static void Test2()
     for(size_t r = 0; r < MatrixLeft.GetHeight(); r++)
       MP_Assert((MatrixResult(r, c) == MatrixLeft(r, c)), "Identity matrix not working.");
 
-  mpLog::Success("Test2 completed.");
+  mpLog::Success("Test2 completed.\n");
 }
 
 static void Test3()
@@ -93,7 +93,7 @@ static void Test3()
         mpLog::Info("res: %f", Result(r, c));
   }
 
-  mpLog::Success("Test3 completed.");
+  mpLog::Success("Test3 completed.\n");
 }
 
 // Load matrix from file and multiply
@@ -124,18 +124,20 @@ static void Test4()
   MP_Assert((Result(2, 3) == 77), "Wrong Result");
   MP_Assert((Result(3, 3) == 92), "Wrong Result");
 
-  mpLog::Success("Test4 completed.");
+  mpLog::Success("Test4 completed.\n");
 }
 
-static void Test5()
+static void Test5(const char* szFileName)
 {
-  auto Left = mpMatrix::FromFile("Data/16x16_random.matrix.txt");
+  auto Left = mpMatrix::FromFile(szFileName);
   MP_Assert(Left.GetHeight() == 16 && Left.GetWidth() == 16, "Invalid result.");
 
   auto Right = Left;
 
   mpLog::Info("Calculating result on the CPU...");
+  auto Beginning = mpTime::Now();
   auto CPUResult = Left * Right;
+  mpLog::Success("CPU calculation done in %f seconds.", mpTime::Now() - Beginning);
 
   auto Platform = mpPlatform::Get();
   auto Device = mpDevice::GetGPU(Platform, 0);
@@ -152,7 +154,9 @@ static void Test5()
     MP_GPUScope(Context, Commands, Kernel);
 
     mpLog::Info("Calculating result on the GPU...");
+    auto Beginning = mpTime::Now();
     auto GPUResult = Left * Right;
+    mpLog::Success("GPU calculation done in %f seconds.", mpTime::Now() - Beginning);
 
     MP_Assert(GPUResult.GetHeight() == CPUResult.GetHeight(), "Invalid height");
     MP_Assert(GPUResult.GetWidth() == CPUResult.GetWidth(), "Invalid width");
@@ -166,19 +170,19 @@ static void Test5()
       }
   }
 
-  mpLog::Success("Test5 completed.");
+  mpLog::Success("Test5 completed.\n");
 }
 
 int main(int argc, char* argv[])
 {
   auto Beginning = mpTime::Now();
-  Test1();
-  Test2();
-  Test3();
-  Test4();
-  Test5();
+  //Test1();
+  //Test2();
+  //Test3();
+  //Test4();
+  Test5("Data/16x16_random.matrix.txt");
 
-  mpLog::Info("\n===> Needed %f seconds in total.", mpTime::Now() - Beginning);
+  mpLog::Info("Needed %f seconds in total.", mpTime::Now() - Beginning);
 
   printf("\nPress any key to quit . . . ");
   mpUtilities::GetSingleCharacter();
