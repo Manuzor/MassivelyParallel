@@ -10,18 +10,18 @@ namespace mpInternal
 }
 
 template<typename Type>
-struct MatrixTemplate
+struct mpMatrixTemplate
 {
   using ElementType = Type;
 
-  MatrixTemplate(size_t uiHeight, size_t uiWidth) :
+  mpMatrixTemplate(size_t uiHeight, size_t uiWidth) :
     m_uiHeight(uiHeight),
     m_uiWidth(uiWidth)
   {
     AllocateData();
   }
 
-  MatrixTemplate(size_t uiHeight, size_t uiWidth, InitAsIdentity) :
+  mpMatrixTemplate(size_t uiHeight, size_t uiWidth, InitAsIdentity) :
     m_uiHeight(uiHeight),
     m_uiWidth(uiWidth)
   {
@@ -35,7 +35,7 @@ struct MatrixTemplate
     }
   }
 
-  MatrixTemplate(size_t uiHeight, size_t uiWidth, InitAsZero) :
+  mpMatrixTemplate(size_t uiHeight, size_t uiWidth, InitAsZero) :
     m_uiHeight(uiHeight),
     m_uiWidth(uiWidth)
   {
@@ -43,7 +43,7 @@ struct MatrixTemplate
     memset(m_Data, 0, Size);
   }
 
-  MatrixTemplate(MatrixTemplate&& Other)  :
+  mpMatrixTemplate(mpMatrixTemplate&& Other)  :
     m_uiHeight(Other.m_uiHeight),
     m_uiWidth(Other.m_uiWidth),
     m_Data(Other.m_Data)
@@ -53,7 +53,7 @@ struct MatrixTemplate
     Other.m_uiHeight = 0;
   }
 
-  MatrixTemplate(const MatrixTemplate& Other) :
+  mpMatrixTemplate(const mpMatrixTemplate& Other) :
     m_uiHeight(Other.m_uiHeight),
     m_uiWidth(Other.m_uiWidth)
   {
@@ -61,7 +61,7 @@ struct MatrixTemplate
     memcpy(m_Data, Other.m_Data, GetByteCount());
   }
 
-  void operator=(MatrixTemplate Copy)
+  void operator=(mpMatrixTemplate Copy)
   {
     using namespace std;
     swap(m_uiHeight, Copy.m_uiHeight);
@@ -69,7 +69,7 @@ struct MatrixTemplate
     swap(m_Data, Copy.m_Data);
   }
 
-  void operator=(MatrixTemplate&& ToMove)
+  void operator=(mpMatrixTemplate&& ToMove)
   {
     if(&ToMove == this)
       return;
@@ -79,7 +79,7 @@ struct MatrixTemplate
     m_uiWidth = ToMove.m_uiWidth; ToMove.m_uiWidth = nullptr;
   }
 
-  ~MatrixTemplate()
+  ~mpMatrixTemplate()
   {
     ReleaseData();
   }
@@ -110,13 +110,13 @@ struct MatrixTemplate
 
   // Static
   //////////////////////////////////////////////////////////////////////////
-  MP_ForceInline static MatrixTemplate FromFile(const char* szFileName)
+  MP_ForceInline static mpMatrixTemplate FromFile(const char* szFileName)
   {
     std::vector<ElementType> Data;
     size_t uiHeight, uiWidth;
     mpInternal::mpLoadMatrixFromFile(Data, uiHeight, uiWidth, szFileName);
     MP_Assert(Data.size() == uiWidth * uiHeight, "Invalid output");
-    auto Result = MatrixTemplate(uiHeight, uiWidth);
+    auto Result = mpMatrixTemplate(uiHeight, uiWidth);
     memcpy(Result.m_Data, Data.data(), Result.GetByteCount());
     return std::move(Result);
   }
@@ -151,4 +151,4 @@ private:
 
 #include "Wrapper/Types/Implementation/Matrix.inl"
 
-using mpMatrix = MatrixTemplate<cl_float>;
+using mpMatrix = mpMatrixTemplate<cl_float>;

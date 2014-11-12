@@ -1,8 +1,7 @@
 
 template<typename LhsType,
          typename RhsType,
-         typename ResultElementType = decltype(((typename LhsType::ElementType)1) * ((typename RhsType::ElementType)1)),
-         typename ResultType = MatrixTemplate<ResultElementType>>
+         typename ResultType = mpMatrixTemplate<decltype(((typename LhsType::ElementType)1) * ((typename RhsType::ElementType)1))>>
 MP_ForceInline
 ResultType operator*(LhsType& Lhs,
                      RhsType& Rhs)
@@ -51,7 +50,7 @@ ResultType operator*(LhsType& Lhs,
     {
       for (size_t c = 0; c < Rhs.GetWidth(); ++c)
       {
-        ResultElementType Current(0);
+        ResultType::ElementType Current(0);
 
         for (size_t i = 0; i < Lhs.GetWidth(); ++i)
         {
