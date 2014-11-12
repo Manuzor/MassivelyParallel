@@ -65,10 +65,10 @@ ResultType operator*(LhsType& Lhs,
 
         for (size_t i = 0; i < Lhs.GetWidth(); ++i)
         {
-          Current += Lhs.At(r, i) * Rhs.At(i, c);
+          Current += Lhs(r, i) * Rhs(i, c);
         }
 
-        Result.At(r, c) = Current;
+        Result(r, c) = Current;
       }
     }
   }

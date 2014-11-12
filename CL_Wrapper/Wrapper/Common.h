@@ -35,3 +35,5 @@ namespace mpInternal
 #include "Wrapper/Error.h"
 
 #define MP_NotImplemented MP_ReportError("Not implemented.")
+
+#define Deref(x) (*(x))

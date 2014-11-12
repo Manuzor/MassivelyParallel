@@ -31,7 +31,7 @@ struct mpMatrixTemplate
     memset(m_Data, 0, GetByteCount());
     for(size_t i = 0; i < m_uiHeight; ++i)
     {
-      At(i, i) = (ElementType)1;
+      Deref(this)(i, i) = (ElementType)1;
     }
   }
 
@@ -86,14 +86,16 @@ struct mpMatrixTemplate
 
   //////////////////////////////////////////////////////////////////////////
 
-  ElementType& At(size_t Y, size_t X)
+  //ElementType& At(size_t Y, size_t X)
+  ElementType& operator()(size_t Y, size_t X)
   {
     MP_Assert(Y < m_uiHeight, "Row out of bounds");
     MP_Assert(X < m_uiWidth, "Col out of bounds");
     return m_Data[GetIndex(Y, X)];
   }
 
-  const ElementType& At(size_t Y, size_t X) const
+  // const ElementType& At(size_t Y, size_t X) const
+  const ElementType& operator()(size_t Y, size_t X) const
   {
     MP_Assert(Y < m_uiHeight, "Row out of bounds");
     MP_Assert(X < m_uiWidth, "Col out of bounds");
