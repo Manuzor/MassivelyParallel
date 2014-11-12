@@ -177,6 +177,7 @@
     <ClInclude Include="Wrapper\Utilities\Console.h" />
     <ClInclude Include="Wrapper\Utilities\File.h" />
     <ClInclude Include="Wrapper\Utilities\String.h" />
+    <ClInclude Include="Wrapper\Utilities\Time.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Wrapper\Implementation\Assert.cpp" />
@@ -204,9 +205,11 @@
     <ClCompile Include="Wrapper\Types\Implementation\Matrix.cpp" />
     <ClCompile Include="Wrapper\Utilities\Implementation\Console.cpp" />
     <ClCompile Include="Wrapper\Utilities\Implementation\File.cpp" />
+    <ClCompile Include="Wrapper\Utilities\Time.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Wrapper\Types\Implementation\Matrix.inl" />
+    <None Include="Wrapper\Utilities\Implementation\Time.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

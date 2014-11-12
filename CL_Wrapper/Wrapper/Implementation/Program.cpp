@@ -1,6 +1,7 @@
 #include "Wrapper/PCH.h"
 #include "Wrapper/Program.h"
 #include "Wrapper/Utilities/File.h"
+#include "Wrapper/Utilities/Time.h"
 
 mpResult mpProgram::LoadAndBuild(const mpContext& Context,
                                  const mpDevice& Device,
@@ -19,6 +20,7 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
   MP_Verify(status);
 
   mpLog::Info("Building '%s' . . .", szFileName);
+  auto Beginning = mpTime::Now();
   mpResult buildResult = clBuildProgram(m_Id, 1, &Device.m_Id, nullptr, nullptr, nullptr);
 
   if(buildResult.Failed())
@@ -29,6 +31,8 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
     MP_Verify(clGetProgramBuildInfo(m_Id, Device.m_Id, CL_PROGRAM_BUILD_LOG, bufferSize, buffer, NULL));
     mpLog::Error("---------- Build Failed ----------\n%s", buffer);
   }
+
+  mpLog::Success("Built program in %f seconds", mpTime::Now() - Beginning);
 
   return buildResult;
 }
