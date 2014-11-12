@@ -127,7 +127,7 @@ static void Test4()
   mpLog::Success("Test4 completed.\n");
 }
 
-static void Test5(const char* szFileName)
+static void Test5(const char* szFileName, const char* szKernelFile)
 {
   mpLog::Info("Loading matrix data from file '%s'", szFileName);
   auto Left = mpMatrix::FromFile(szFileName);
@@ -148,7 +148,7 @@ static void Test5(const char* szFileName)
   mpCommandQueue Commands;
   Commands.Initialize(Context, Device);
   mpProgram Program;
-  MP_Verify(Program.LoadAndBuild(Context, Device, "Kernels/Matrix.cl"));
+  MP_Verify(Program.LoadAndBuild(Context, Device, szKernelFile));
   mpKernel Kernel;
   Kernel.Initialize(Commands, Program, "MultiplyMatrix");
 
@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
   //Test2();
   //Test3();
   //Test4();
-  Test5("Data/HugeRandomMatrix.txt");
+  Test5("Data/HugeRandomMatrix.txt", "Kernels/MatrixSingleThreaded.cl");
 
   mpLog::Info("Needed %f seconds in total.", mpTime::Now() - Beginning);
 
