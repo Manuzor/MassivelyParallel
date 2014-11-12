@@ -4,7 +4,10 @@ enum InitAsIdentity { Identity };
 enum InitAsZero { Zero };
 enum DoNotInit { NoInit };
 
-MP_WrapperAPI void mpLoadMatrixFromFile(const char* szFileName, size_t uiWidth, size_t uiHeight, void* out_Data);
+namespace mpInternal
+{
+  MP_WrapperAPI void mpLoadMatrixFromFile(std::vector<cl_float>& out_Data, size_t& out_uiHeight, size_t& out_uiWidth, const char* szFileName);
+}
 
 template<typename Type>
 struct MatrixTemplate
@@ -55,7 +58,7 @@ struct MatrixTemplate
     m_uiWidth(Other.m_uiWidth)
   {
     AllocateData();
-    memcpy(m_Data, Other.m_Data, Size);
+    memcpy(m_Data, Other.m_Data, GetByteCount());
   }
 
   void operator=(MatrixTemplate Copy)
@@ -109,8 +112,12 @@ struct MatrixTemplate
   //////////////////////////////////////////////////////////////////////////
   MP_ForceInline static MatrixTemplate FromFile(const char* szFileName)
   {
-    MatrixTemplate Result;
-    mpLoadMatrixFromFile(szFileName, Result.Height, Result.Width, Result.m_Data);
+    std::vector<ElementType> Data;
+    size_t uiHeight, uiWidth;
+    mpInternal::mpLoadMatrixFromFile(Data, uiHeight, uiWidth, szFileName);
+    MP_Assert(Data.size() == uiWidth * uiHeight, "Invalid output");
+    auto Result = MatrixTemplate(uiHeight, uiWidth);
+    memcpy(Result.m_Data, Data.data(), Result.GetByteCount());
     return std::move(Result);
   }
 
@@ -119,8 +126,22 @@ private:
   size_t m_uiHeight;
   ElementType* m_Data;
 
-  void AllocateData() { m_Data = new ElementType[GetElementCount()]; }
-  void ReleaseData() { if(m_Data) { delete[] m_Data; m_Data = nullptr; } }
+  MP_ForceInline void AllocateData()
+  {
+    if(GetElementCount() > 0)
+      m_Data = new ElementType[GetElementCount()];
+    else
+      m_Data = nullptr;
+  }
+
+  MP_ForceInline void ReleaseData()
+  {
+    if(m_Data)
+    {
+      delete[] m_Data;
+      m_Data = nullptr;
+    }
+  }
 
   MP_ForceInline size_t GetIndex(size_t Y, size_t X) const
   {

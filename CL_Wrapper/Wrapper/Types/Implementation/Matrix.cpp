@@ -23,16 +23,15 @@ static size_t SkipWhiteSpace(IteratorType& Iterator, IteratorType End)
   return Iterator - Start;
 }
 
-template<typename ElementType, typename BufferType, typename IteratorType, size_t Stride = sizeof(ElementType)>
-static size_t ReadRow(BufferType& BufferCurrent, BufferType BufferEnd, IteratorType& Current, IteratorType End)
+template<typename ElementType, typename BufferType, typename IteratorType>
+static size_t ReadRow(BufferType& out_Buffer, IteratorType& Current, IteratorType End)
 {
-  size_t uiElementsRead = 0;
+  size_t uiNumElementsAtBeginning = out_Buffer.size();
   SkipWhiteSpace(Current, End);
 
   MP_Assert(*Current == '{', "Invalid syntax");
   ++Current; // Read the leading '}' character.
 
-  auto BufferStart = BufferCurrent;
   std::string sTemp;
 
   while(true)
@@ -55,23 +54,22 @@ static size_t ReadRow(BufferType& BufferCurrent, BufferType BufferEnd, IteratorT
     if (Current != End && *Current == ',') // Could also be '}'
       ++Current;
 
-    MP_Assert(BufferCurrent < BufferEnd, "Buffer not big enough!");
-
     sTemp.assign(ValueStart, ValueEnd);
     auto TheValue = mpParse<ElementType>(ValueStart, ValueEnd);
-    memcpy(BufferCurrent, &TheValue, sizeof(TheValue));
-    BufferCurrent += Stride;
+    out_Buffer.push_back(TheValue);
   }
 
   MP_Assert(*Current == '}', "Invalid syntax");
   ++Current; // Read trailing '}' character of the row
 
-  return (BufferCurrent - BufferStart) / sizeof(ElementType);
+  return out_Buffer.size() - uiNumElementsAtBeginning;
 }
 
-void mpLoadMatrixFromFile(const char* szFileName,
-                          size_t uiWidth, size_t uiHeight, void* out_Data)
+void mpInternal::mpLoadMatrixFromFile(std::vector<cl_float>& out_Data, size_t& out_uiHeight, size_t& out_uiWidth, const char* szFileName)
 {
+  out_uiHeight = 0;
+  out_uiWidth = -1;
+
   std::vector<char> Content;
   mpLoadStringFromFile(Content, szFileName);
 
@@ -86,8 +84,6 @@ void mpLoadMatrixFromFile(const char* szFileName,
   }
 
   ++Current;
-  auto BufferCurrent = reinterpret_cast<char*>(out_Data);
-  auto BufferEnd = BufferCurrent + (uiWidth * uiHeight) * sizeof(cl_float);
 
   while(true)
   {
@@ -95,7 +91,13 @@ void mpLoadMatrixFromFile(const char* szFileName,
     if (Current == End)
       break;
 
-    ReadRow<cl_float>(BufferCurrent, BufferEnd, Current, End);
+    auto ReadWidth = ReadRow<cl_float>(out_Data, Current, End);
+    if (out_uiWidth == -1)
+      out_uiWidth = ReadWidth;
+
+    MP_Assert(ReadWidth == out_uiWidth, "Rows in matrix file do not all have the same width");
+
+    ++out_uiHeight;
 
     SkipWhiteSpace(Current, End);
 
