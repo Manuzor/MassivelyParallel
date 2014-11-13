@@ -129,18 +129,6 @@ static void Test4()
 
 static void Test5(const char* szFileName, const char* szKernelFile)
 {
-  mpLog::Info("Loading matrix data from file '%s'", szFileName);
-  auto Left = mpMatrix::FromFile(szFileName);
-  mpLog::Info("Loaded a %ux%u matrix.", Left.GetHeight(), Left.GetWidth());
-
-  auto Right = Left;
-
-  mpLog::Info("Calculating result on the CPU...");
-  auto Beginning = mpTime::Now();
-  auto CPUResult = Left * Right;
-  auto CPUTime = mpTime::Now() - Beginning;
-  mpLog::Success("CPU calculation done in %f seconds.", CPUTime);
-
   auto Platform = mpPlatform::Get();
   auto Device = mpDevice::GetGPU(Platform, 0);
   mpContext Context;
@@ -151,6 +139,25 @@ static void Test5(const char* szFileName, const char* szKernelFile)
   MP_Verify(Program.LoadAndBuild(Context, Device, szKernelFile));
   mpKernel Kernel;
   Kernel.Initialize(Commands, Program, "MultiplyMatrix");
+
+  //////////////////////////////////////////////////////////////////////////
+
+  mpLog::Info("Loading matrix data from file '%s'", szFileName);
+  auto DataLoadingBegin = mpTime::Now();
+  auto Left = mpMatrix::FromFile(szFileName);
+  mpLog::Info("Loaded a %ux%u matrix in %f seconds.",
+              Left.GetHeight(), Left.GetWidth(),
+              (mpTime::Now() - DataLoadingBegin).GetSeconds());
+
+  //////////////////////////////////////////////////////////////////////////
+
+  auto Right = Left;
+
+  mpLog::Info("Calculating result on the CPU...");
+  auto Beginning = mpTime::Now();
+  auto CPUResult = Left * Right;
+  auto CPUTime = mpTime::Now() - Beginning;
+  mpLog::Success("CPU calculation done in %f seconds.", CPUTime);
 
   {
     MP_GPUScope(Context, Commands, Kernel);
@@ -172,7 +179,7 @@ static void Test5(const char* szFileName, const char* szKernelFile)
                   (CPUTime - GPUTime).GetSeconds());
     }
 
-    auto comparisonEpsilon = 0.1f;
+    auto comparisonEpsilon = 0.9f;
     mpLog::Info("Comparing CPU and GPU results with an epsilon of %f", comparisonEpsilon);
 
     MP_Assert(GPUResult.GetHeight() == CPUResult.GetHeight(), "Invalid height");
@@ -199,7 +206,7 @@ int main(int argc, char* argv[])
   //Test2();
   //Test3();
   //Test4();
-  Test5("Data/HugeRandomMatrix.txt", "Kernels/MatrixSingleThreaded.cl");
+  Test5("Data/HugeRandomMatrix.txt", "Kernels/Matrix.cl");
 
   mpLog::Info("Needed %f seconds in total.", mpTime::Now() - Beginning);
 

@@ -40,30 +40,21 @@ void Multiply(Matrix A, Matrix B, Matrix R)
 {
   // width of A must be equal to height of B
 
-  for(int y = 0; y < GetHeight(R); ++y)
+  float fCurrent = 0;
+  for(int i = 0; i < GetWidth(A); ++i)
   {
-    for(int x = 0; x < GetWidth(R); ++x)
-    {
-      float fCurrent = 0;
-      for(int i = 0; i < GetWidth(A); ++i)
-      {
-        fCurrent += GetAt(A, y, i) * GetAt(B, i, x);
-      }
-      SetAt(R, y, x, fCurrent);
-    }
+    fCurrent += GetAt(A, get_global_id(0), i) * GetAt(B, i, get_global_id(1));
   }
+  SetAt(R, get_global_id(0), get_global_id(1), fCurrent);
 }
 
 kernel void MultiplyMatrix(int HeightA, int WidthA, global float* DataA,
                            int HeightB, int WidthB, global float* DataB,
                                                     global float* Result)
 {
-  if(get_global_id(0) == 0)
-  {
-    Matrix A = { HeightA, WidthA, DataA  };
-    Matrix B = { HeightB, WidthB, DataB  };
-    Matrix R = { HeightA, WidthB, Result };
+  Matrix A = { HeightA, WidthA, DataA  };
+  Matrix B = { HeightB, WidthB, DataB  };
+  Matrix R = { HeightA, WidthB, Result };
 
-    Multiply(A, B, R);
-  }
+  Multiply(A, B, R);
 }
