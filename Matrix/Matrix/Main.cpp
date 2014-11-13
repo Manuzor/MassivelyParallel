@@ -168,15 +168,23 @@ static void Test5(const char* szFileName, const char* szKernelFile)
     auto GPUTime = mpTime::Now() - Beginning;
     mpLog::Success("GPU calculation done in %f seconds.", GPUTime);
 
-    if (CPUTime < GPUTime)
     {
-      mpLog::Info("The CPU was %f seconds faster than the GPU.",
-                  (GPUTime - CPUTime).GetSeconds());
-    }
-    else
-    {
-      mpLog::Info("The GPU was %f seconds faster than the CPU.",
-                  (CPUTime - GPUTime).GetSeconds());
+      auto CPUSeconds = CPUTime.GetSeconds();
+      auto GPUSeconds = GPUTime.GetSeconds();
+      if(CPUSeconds < GPUSeconds)
+      {
+        auto Difference = GPUSeconds - CPUSeconds;
+        mpLog::Info("The CPU was faster than the GPU by %.1f times (%f seconds).",
+                    GPUSeconds / CPUSeconds,
+                    Difference);
+      }
+      else
+      {
+        auto Difference = CPUSeconds - GPUSeconds;
+        mpLog::Info("The GPU was faster than the CPU by %.1f times (%f seconds).",
+                    CPUSeconds / GPUSeconds,
+                    Difference);
+      }
     }
 
     auto comparisonEpsilon = 0.9f;
