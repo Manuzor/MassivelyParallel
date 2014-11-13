@@ -2,6 +2,30 @@
 #include "Wrapper/Logging.h"
 #include "Wrapper/String.h"
 
+static mpLog::Block* g_pCurrentBlock;
+
+mpLog::Block::Block(const char* szFormat, ...) :
+  m_pParent(g_pCurrentBlock),
+  m_bHasLogged(false)
+{
+  g_pCurrentBlock = this;
+  m_uiIndentation = m_pParent ? m_pParent->m_uiIndentation + 1 : 1;
+}
+
+mpLog::Block::~Block()
+{
+  g_pCurrentBlock = m_pParent;
+  m_pParent = nullptr;
+}
+
+void mpLog::Block::LogDescription()
+{
+  if(m_bHasLogged)
+    return;
+
+}
+
+
 namespace
 {
   enum class LogLevel
@@ -53,11 +77,16 @@ static void LogToVisualStudio(LogLevel Level, const std::string& sMessage)
 }
 
 #define BODY(Level) \
-  std::ostringstream outMessage; \
+  std::stringstream outMessage; \
   va_list vargs;\
   va_start(vargs, szFormat);\
   MP_OnScopeExit { va_end(vargs); };\
   mpString::AppendFormatV(outMessage, szFormat, vargs);\
+  if(g_pCurrentBlock)\
+    for (mpUInt64 i = 0; i < g_pCurrentBlock->GetIndentation(); ++i)\
+    {\
+      outMessage << "  ";\
+    }\
   auto sMessage = outMessage.str();\
   LogToStdOut(Level, sMessage);\
   LogToVisualStudio(Level, sMessage);
