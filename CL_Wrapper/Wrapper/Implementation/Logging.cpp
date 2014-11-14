@@ -1,6 +1,7 @@
 #include "Wrapper/PCH.h"
 #include "Wrapper/Logging.h"
 #include "Wrapper/String.h"
+#include "Wrapper/Startup.h"
 
 namespace
 {
@@ -22,17 +23,25 @@ namespace
 {
   struct LogBlock
   {
-    LogBlock() {}
-
-    LogBlock(std::string& sMessage) :
-      m_sMessage(std::move(sMessage)),
-      m_bHasLogged(false)
+    /// \brief Special constructor for the root-block
+    LogBlock() :
+      m_pParent(nullptr),
+      m_uiIndentation(0),
+      m_bNeverDoAnything(true)
     {
+    }
+
+    LogBlock(LogBlock* pParent, std::string& sMessage) :
+      m_pParent(pParent),
+      m_uiIndentation(m_pParent->m_uiIndentation + 1),
+      m_sMessage(std::move(sMessage))
+    {
+      MP_Assert(m_pParent, "Invalid parent! Are you using log blocks after shutdown?");
     }
 
     ~LogBlock()
     {
-      if(!m_bHasLogged)
+      if(m_bNeverDoAnything || !m_bHasLogged)
         return;
 
       PropagateLogMessage(LogLevel::BlockEnd, m_sMessage);
@@ -40,30 +49,43 @@ namespace
 
     void LogMessage()
     {
-      if(m_bHasLogged)
+      if(m_bNeverDoAnything || m_bHasLogged)
         return;
 
       m_bHasLogged = true;
       PropagateLogMessage(LogLevel::BlockBegin, m_sMessage);
     }
 
+    MP_ForceInline size_t GetIndentation() const { return m_uiIndentation; }
+    MP_ForceInline LogBlock* GetParent() { return m_pParent; }
+
   private:
+    LogBlock* m_pParent;
+    size_t m_uiIndentation = 1;
     std::string m_sMessage;
-    bool m_bHasLogged;
+    bool m_bHasLogged = false;
+    bool m_bNeverDoAnything = false;
   };
 
-  static const size_t g_uiMaxLogBlocksCount = 64;
-  static LogBlock g_LogBlocks[g_uiMaxLogBlocksCount];
-  static size_t g_uiLogBlocksCount;
-
-  MP_ForceInline static LogBlock* GetCurrentLogBlock()
-  {
-    if (g_uiLogBlocksCount == 0)
-      return nullptr;
-
-    return &g_LogBlocks[g_uiLogBlocksCount - 1];
-  }
+  static LogBlock* g_pCurrentBlock;
 }
+
+MP_GlobalInitializationBegin
+
+  LogBlock m_RootLogBlock;
+
+  MP_OnGlobalStartup
+  {
+    g_pCurrentBlock = &m_RootLogBlock;
+  }
+
+  MP_OnGlobalShutdown
+  {
+    MP_Assert(g_pCurrentBlock == &m_RootLogBlock, "No log blocks may be open on shutdown!");
+    g_pCurrentBlock = nullptr;
+  }
+
+MP_GlobalInitializationEnd
 
 namespace
 {
@@ -100,8 +122,7 @@ namespace
 
 static void DoLog(LogLevel Level, std::stringstream& ssFormattedMessage)
 {
-  if(auto pBlock = GetCurrentLogBlock())
-    pBlock->LogMessage();
+  g_pCurrentBlock->LogMessage();
 
   auto sMessage = ssFormattedMessage.str();
   PropagateLogMessage(Level, ssFormattedMessage.str());
@@ -111,7 +132,7 @@ static void LogToStdOut(LogLevel Level, const std::string& sMessage)
 {
   printf("%s| ", GetShortString(Level));
 
-  auto uiIndentation = g_uiLogBlocksCount;
+  auto uiIndentation = g_pCurrentBlock->GetIndentation();
   auto szPrefix = "";
   switch(Level)
   {
@@ -146,7 +167,7 @@ static void LogToVisualStudio(LogLevel Level, const std::string& sMessage)
   OutputDebugStringA(GetShortString(Level));
   OutputDebugStringA("| ");
 
-  auto uiIndentation = g_uiLogBlocksCount;
+  auto uiIndentation = g_pCurrentBlock->GetIndentation();
   auto szPrefix = "";
   switch(Level)
   {
@@ -196,21 +217,21 @@ static void PropagateLogMessage(LogLevel Level, const std::string& sMessage)
 
 void mpLog::BlockBegin(const char* szFormat, ...)
 {
-  MP_Assert(g_uiLogBlocksCount < g_uiMaxLogBlocksCount,
-            "Exceeded allowed number of nested log blocks.");
-
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
 
-  new (g_LogBlocks + g_uiLogBlocksCount) LogBlock(ssMessage.str());
-  ++g_uiLogBlocksCount;
+  g_pCurrentBlock = new LogBlock(g_pCurrentBlock, ssMessage.str());
 }
 
 void mpLog::BlockEnd()
 {
-  MP_Assert(g_uiLogBlocksCount > 0, "Called BlockEnd more often than BlockBegin!");
-  g_LogBlocks[g_uiLogBlocksCount - 1].~LogBlock();
-  --g_uiLogBlocksCount;
+  MP_Assert(g_pCurrentBlock, "Called BlockEnd more often than BlockBegin!");
+
+  auto pParentBlock = g_pCurrentBlock->GetParent();
+  MP_Assert(pParentBlock, "Called BlockEnd more often than BlockBegin!");
+
+  delete g_pCurrentBlock;
+  g_pCurrentBlock = pParentBlock;
 }
 
 void MP_WrapperAPI mpLog::Info(const char* szFormat, ...)
