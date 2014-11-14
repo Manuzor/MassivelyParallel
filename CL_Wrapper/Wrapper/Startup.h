@@ -38,7 +38,32 @@ namespace mpStartup
 {
   MP_WrapperAPI void Startup();
   MP_WrapperAPI void Shutdown();
+
+  /// \brief This class can be used for "global" startup and shutdown of any kind of system.
+  class MP_WrapperAPI mpInitialization
+  {
+  public:
+    mpInitialization();
+
+    virtual void OnStartup() {}
+    virtual void OnShutdown() {}
+
+  private:
+    mpInitialization* m_pNext;
+
+    friend MP_WrapperAPI void Startup();
+    friend MP_WrapperAPI void Shutdown();
+  };
 }
+
+#define MP_GlobalInitializationBegin namespace { \
+  class MP_Concat(_GlobalInitialization_, __LINE__) : public ::mpStartup::mpInitialization \
+  { public:
+
+#define MP_OnGlobalStartup virtual void OnStartup() final override
+#define MP_OnGlobalShutdown virtual void OnShutdown() final override
+
+#define MP_GlobalInitializationEnd } MP_Concat(_GlobalInitialization_, __LINE__) ## _Instance; }
 
 namespace mpInternal
 {

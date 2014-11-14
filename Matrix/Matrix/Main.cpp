@@ -208,7 +208,6 @@ static void Test5(const char* szFileName, const char* szKernelFile)
   mpLog::Success("Test5 completed.\n");
 }
 
-
 class Main : public mpApplication
 {
   virtual RunBehavior Run() final override
@@ -244,3 +243,17 @@ class Main : public mpApplication
 };
 
 MP_EntryClass(Main)
+
+MP_GlobalInitializationBegin
+
+  MP_OnGlobalStartup
+  {
+    printf("Startup works\n");
+  }
+
+  MP_OnGlobalShutdown
+  {
+    printf("Shutdown works\n");
+  }
+
+MP_GlobalInitializationEnd

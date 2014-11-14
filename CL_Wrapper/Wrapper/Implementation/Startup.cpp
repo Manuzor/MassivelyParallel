@@ -1,6 +1,12 @@
 #include "Wrapper/PCH.h"
 #include "Wrapper/Startup.h"
 
+namespace
+{
+  mpStartup::mpInitialization* g_pInit{ nullptr };
+
+}
+
 mpApplication::mpApplication() :
   m_iArgumentCount(0),
   m_szArguments(nullptr),
@@ -16,8 +22,22 @@ void mpApplication::SetCommandLine(int argc, const char* argv[])
 
 void mpStartup::Startup()
 {
+  for (auto pInit = g_pInit; pInit != nullptr; pInit = pInit->m_pNext)
+  {
+    pInit->OnStartup();
+  }
 }
 
 void mpStartup::Shutdown()
 {
+  for (auto pInit = g_pInit; pInit != nullptr; pInit = pInit->m_pNext)
+  {
+    pInit->OnShutdown();
+  }
+}
+
+mpStartup::mpInitialization::mpInitialization() :
+  m_pNext(g_pInit)
+{
+  g_pInit = this;
 }
