@@ -214,7 +214,22 @@ int main(int argc, char* argv[])
   //Test2();
   //Test3();
   //Test4();
-  Test5("Data/HugeRandomMatrix.txt", "Kernels/Matrix.cl");
+  //Test5("Data/HugeRandomMatrix.txt", "Kernels/Matrix.cl");
+
+  {
+    MP_LogBlock("Level 0");
+    mpLog::Info("A");
+    {
+      MP_LogBlock("Level 1");
+      mpLog::Info("B");
+      {
+        MP_LogBlock("Level 2");
+        mpLog::Info("C");
+      }
+      mpLog::Info("D");
+    }
+    mpLog::Info("E");
+  }
 
   mpLog::Info("Needed %f seconds in total.", mpTime::Now() - Beginning);
 

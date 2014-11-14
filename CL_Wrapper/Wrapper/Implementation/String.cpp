@@ -1,7 +1,7 @@
 #include "Wrapper/PCH.h"
 #include "Wrapper/String.h"
 
-void mpString::AppendFormat(std::ostringstream& out_Formatted, const char* szFormat, ...)
+void mpString::AppendFormat(std::stringstream& out_Formatted, const char* szFormat, ...)
 {
   va_list vargs;
   va_start(vargs, szFormat);
@@ -9,7 +9,7 @@ void mpString::AppendFormat(std::ostringstream& out_Formatted, const char* szFor
   AppendFormatV(out_Formatted, szFormat, vargs);
 }
 
-void mpString::AppendFormatV(std::ostringstream& out_Formatted, const char* szFormat, va_list args)
+void mpString::AppendFormatV(std::stringstream& out_Formatted, const char* szFormat, va_list args)
 {
   static const size_t maxAllocationSize(1024 * 1024 * 10); // 10 MB
   static const size_t bufferSize(1024);
