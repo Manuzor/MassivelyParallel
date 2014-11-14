@@ -1,9 +1,9 @@
 #include "Matrix/PCH.h"
-#include "Wrapper/Utilities/Console.h"
-#include "Wrapper/Types/Matrix.h"
-#include "Wrapper/Utilities/Math.h"
-#include "Wrapper/Utilities/Time.h"
-#include "Wrapper/Startup.h"
+#include "mpWrapper/Utilities/Console.h"
+#include "mpWrapper/Types/Matrix.h"
+#include "mpWrapper/Utilities/Math.h"
+#include "mpWrapper/Utilities/Time.h"
+#include "mpWrapper/Startup.h"
 
 static void Test1()
 {
