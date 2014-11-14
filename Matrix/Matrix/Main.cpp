@@ -3,6 +3,7 @@
 #include "Wrapper/Types/Matrix.h"
 #include "Wrapper/Utilities/Math.h"
 #include "Wrapper/Utilities/Time.h"
+#include "Wrapper/Startup.h"
 
 static void Test1()
 {
@@ -207,33 +208,39 @@ static void Test5(const char* szFileName, const char* szKernelFile)
   mpLog::Success("Test5 completed.\n");
 }
 
-int main(int argc, char* argv[])
+
+class Main : public mpApplication
 {
-  auto Beginning = mpTime::Now();
-  //Test1();
-  //Test2();
-  //Test3();
-  //Test4();
-  //Test5("Data/HugeRandomMatrix.txt", "Kernels/Matrix.cl");
-
+  virtual RunBehavior Run() final override
   {
-    MP_LogBlock("Level 0");
-    mpLog::Info("A");
+    auto Beginning = mpTime::Now();
+    //Test1();
+    //Test2();
+    //Test3();
+    //Test4();
+    //Test5("Data/HugeRandomMatrix.txt", "Kernels/Matrix.cl");
+
     {
-      MP_LogBlock("Level 1");
-      mpLog::Info("B");
+      MP_LogBlock("Level 0");
+      mpLog::Info("A");
       {
-        MP_LogBlock("Level 2");
-        mpLog::Info("C");
+        MP_LogBlock("Level 1");
+        mpLog::Info("B");
+        {
+          MP_LogBlock("Level 2");
+          mpLog::Info("C");
+        }
+        mpLog::Info("D");
       }
-      mpLog::Info("D");
+      mpLog::Info("E");
     }
-    mpLog::Info("E");
+
+    mpLog::Info("Needed %f seconds in total.", mpTime::Now() - Beginning);
+
+    printf("\nPress any key to quit . . . ");
+    mpUtilities::GetSingleCharacter();
+    return RunBehavior::Quit;
   }
+};
 
-  mpLog::Info("Needed %f seconds in total.", mpTime::Now() - Beginning);
-
-  printf("\nPress any key to quit . . . ");
-  mpUtilities::GetSingleCharacter();
-  return 0;
-}
+MP_EntryClass(Main)
