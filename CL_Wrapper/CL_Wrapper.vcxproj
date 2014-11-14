@@ -164,6 +164,7 @@
     <ClInclude Include="Wrapper\Error.h" />
     <ClInclude Include="Wrapper\Kernel.h" />
     <ClInclude Include="Wrapper\Logging.h" />
+    <ClInclude Include="Wrapper\Startup.h" />
     <ClInclude Include="Wrapper\Utilities\Math.h" />
     <ClInclude Include="Wrapper\PCH.h" />
     <ClInclude Include="Wrapper\Platform.h" />
@@ -202,12 +203,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Wrapper/PCH.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Wrapper\Implementation\Startup.cpp" />
     <ClCompile Include="Wrapper\Types\Implementation\Matrix.cpp" />
     <ClCompile Include="Wrapper\Utilities\Implementation\Console.cpp" />
     <ClCompile Include="Wrapper\Utilities\Implementation\File.cpp" />
     <ClCompile Include="Wrapper\Utilities\Time.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Wrapper\Implementation\Startup.inl" />
     <None Include="Wrapper\Types\Implementation\Matrix.inl" />
     <None Include="Wrapper\Utilities\Implementation\Time.inl" />
   </ItemGroup>
