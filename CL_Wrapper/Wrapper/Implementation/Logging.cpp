@@ -1,6 +1,7 @@
 #include "Wrapper/PCH.h"
 #include "Wrapper/Logging.h"
 #include "Wrapper/String.h"
+#include "Wrapper/Startup.h"
 
 namespace
 {
@@ -53,17 +54,27 @@ namespace
   };
 
   static const size_t g_uiMaxLogBlocksCount = 64;
-  static LogBlock g_LogBlocks[g_uiMaxLogBlocksCount];
-  static size_t g_uiLogBlocksCount;
+  static char g_LogBlocksmemory[g_uiMaxLogBlocksCount * sizeof(LogBlock)];
+  static size_t g_uiLogBlocksCount = 0;
 
   MP_ForceInline static LogBlock* GetCurrentLogBlock()
   {
     if (g_uiLogBlocksCount == 0)
       return nullptr;
 
-    return &g_LogBlocks[g_uiLogBlocksCount - 1];
+    auto uiIndex = (g_uiLogBlocksCount - 1) * sizeof(LogBlock);
+    return reinterpret_cast<LogBlock*>(&g_LogBlocksmemory[uiIndex]);
   }
 }
+
+MP_GlobalInitializationBegin
+
+  MP_OnGlobalShutdown
+  {
+    MP_Assert(g_uiLogBlocksCount == 0, "There must not be any open log blocks during shutdown!");
+  }
+
+MP_GlobalInitializationEnd
 
 namespace
 {
@@ -202,14 +213,14 @@ void mpLog::BlockBegin(const char* szFormat, ...)
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
 
-  new (g_LogBlocks + g_uiLogBlocksCount) LogBlock(ssMessage.str());
+  new (g_LogBlocksmemory + (g_uiLogBlocksCount * sizeof(LogBlock))) LogBlock(ssMessage.str());
   ++g_uiLogBlocksCount;
 }
 
 void mpLog::BlockEnd()
 {
   MP_Assert(g_uiLogBlocksCount > 0, "Called BlockEnd more often than BlockBegin!");
-  g_LogBlocks[g_uiLogBlocksCount - 1].~LogBlock();
+  GetCurrentLogBlock()->~LogBlock();
   --g_uiLogBlocksCount;
 }
 
