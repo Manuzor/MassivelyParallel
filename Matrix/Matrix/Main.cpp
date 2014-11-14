@@ -210,9 +210,15 @@ static void Test5(const char* szFileName, const char* szKernelFile)
 
 class Main : public mpApplication
 {
-  virtual RunBehavior Run() final override
+  mpTime m_Beginning;
+
+  virtual void PreStartup() final override
   {
-    auto Beginning = mpTime::Now();
+    m_Beginning = mpTime::Now();
+  }
+
+  virtual QuitOrContinue Run() final override
+  {
     //Test1();
     //Test2();
     //Test3();
@@ -234,11 +240,14 @@ class Main : public mpApplication
       mpLog::Info("E");
     }
 
-    mpLog::Info("Needed %f seconds in total.", mpTime::Now() - Beginning);
+    return Quit;
+  }
 
+  virtual void PostShutdown() final override
+  {
+    mpLog::Info("Needed %f seconds in total.", mpTime::Now() - m_Beginning);
     printf("\nPress any key to quit . . . ");
     mpUtilities::GetSingleCharacter();
-    return RunBehavior::Quit;
   }
 };
 

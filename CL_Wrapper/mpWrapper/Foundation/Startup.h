@@ -4,7 +4,7 @@ class MP_WrapperAPI mpApplication
 {
 public:
 
-  enum class RunBehavior
+  enum QuitOrContinue
   {
     Quit,
     Continue,
@@ -15,7 +15,7 @@ public:
   virtual void PreStartup() {}
   virtual void PostStartup() {}
 
-  virtual RunBehavior Run() = 0;
+  virtual QuitOrContinue Run() = 0;
 
   virtual void PreShutdown() {}
   virtual void PostShutdown() {}
@@ -79,7 +79,7 @@ namespace mpInternal
     mpStartup::Startup();
     pApp->PostStartup();
 
-    while(pApp->Run() == mpApplication::RunBehavior::Continue);
+    while(pApp->Run());
 
     pApp->PreShutdown();
     mpStartup::Shutdown();

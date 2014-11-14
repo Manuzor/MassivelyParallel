@@ -78,12 +78,6 @@ MP_GlobalInitializationBegin
     g_pCurrentBlock = &m_RootLogBlock;
   }
 
-  MP_OnGlobalShutdown
-  {
-    MP_Assert(g_pCurrentBlock == &m_RootLogBlock, "No log blocks may be open on shutdown!");
-    g_pCurrentBlock = nullptr;
-  }
-
 MP_GlobalInitializationEnd
 
 namespace

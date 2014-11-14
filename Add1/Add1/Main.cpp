@@ -4,7 +4,7 @@
 
 class Main : public mpApplication
 {
-  virtual RunBehavior Run() final override
+  virtual QuitOrContinue Run() final override
   {
     auto Platform = mpPlatform::Get();
     auto Device = mpDevice::GetGPU(Platform, 0);
@@ -51,7 +51,7 @@ class Main : public mpApplication
     printf("Press any key to continue . . . ");
     mpUtilities::GetSingleCharacter();
 
-    return RunBehavior::Quit;
+    return QuitOrContinue::Quit;
   }
 };
 
