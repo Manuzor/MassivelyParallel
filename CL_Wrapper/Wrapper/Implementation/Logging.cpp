@@ -2,74 +2,188 @@
 #include "Wrapper/Logging.h"
 #include "Wrapper/String.h"
 
-static mpInternal::LogBlock* g_pCurrentBlock;
-
-mpInternal::LogBlock::LogBlock(const char* szFormat, ...) :
-  m_pParent(g_pCurrentBlock),
-  m_bHasLogged(false)
+namespace
 {
-  g_pCurrentBlock = this;
-  m_uiIndentation = m_pParent ? m_pParent->m_uiIndentation + 1 : 1;
+  enum class LogLevel
+  {
+    BlockBegin = -2,
+    BlockEnd = -1,
+
+    Info,
+    Success,
+    Warning,
+    Error
+  };
 }
 
-mpInternal::LogBlock::~LogBlock()
-{
-  g_pCurrentBlock = m_pParent;
-  m_pParent = nullptr;
-}
+void PropagateLogMessage(LogLevel Level, const std::string& sMessage);
 
-void mpInternal::LogBlock::LogDescription()
+namespace
 {
-  if(m_bHasLogged)
-    return;
+  struct LogBlock
+  {
+    LogBlock() {}
 
+    LogBlock(std::string& sMessage) :
+      m_sMessage(std::move(sMessage)),
+      m_bHasLogged(false)
+    {
+    }
+
+    ~LogBlock()
+    {
+      if(!m_bHasLogged)
+        return;
+
+      PropagateLogMessage(LogLevel::BlockEnd, m_sMessage);
+    }
+
+    void LogMessage()
+    {
+      if(m_bHasLogged)
+        return;
+
+      m_bHasLogged = true;
+      PropagateLogMessage(LogLevel::BlockBegin, m_sMessage);
+    }
+
+  private:
+    std::string m_sMessage;
+    bool m_bHasLogged;
+  };
+
+  static const size_t g_uiMaxLogBlocksCount = 64;
+  static LogBlock g_LogBlocks[g_uiMaxLogBlocksCount];
+  static size_t g_uiLogBlocksCount;
+
+  MP_ForceInline static LogBlock* GetCurrentLogBlock()
+  {
+    if (g_uiLogBlocksCount == 0)
+      return nullptr;
+
+    return &g_LogBlocks[g_uiLogBlocksCount - 1];
+  }
 }
 
 namespace
 {
-
-  const char* GetString(mpInternal::LogLevel Level)
+  const char* GetString(LogLevel Level)
   {
     switch(Level)
     {
-    case mpInternal::LogLevel::BlockBegin: return "BlockBegin";
-    case mpInternal::LogLevel::BlockEnd:   return "BlockEnd";
-    case mpInternal::LogLevel::Info:       return "Info";
-    case mpInternal::LogLevel::Success:    return "Success";
-    case mpInternal::LogLevel::Warning:    return "Warning";
-    case mpInternal::LogLevel::Error:      return "Error";
+    case LogLevel::BlockBegin: return "BlockBegin";
+    case LogLevel::BlockEnd:   return "BlockEnd";
+    case LogLevel::Info:       return "Info";
+    case LogLevel::Success:    return "Success";
+    case LogLevel::Warning:    return "Warning";
+    case LogLevel::Error:      return "Error";
     }
     MP_NotImplemented;
     return nullptr;
   }
 
-  const char* GetShortString(mpInternal::LogLevel Level)
+  const char* GetShortString(LogLevel Level)
   {
     switch(Level)
     {
-    case mpInternal::LogLevel::BlockBegin: return ">>>";
-    case mpInternal::LogLevel::BlockEnd:   return "<<<";
-    case mpInternal::LogLevel::Info:       return "Ifo";
-    case mpInternal::LogLevel::Success:    return "Suc";
-    case mpInternal::LogLevel::Warning:    return "Wrn";
-    case mpInternal::LogLevel::Error:      return "Err";
+    case LogLevel::BlockBegin: return ">>>";
+    case LogLevel::BlockEnd:   return "<<<";
+    case LogLevel::Info:       return "Ifo";
+    case LogLevel::Success:    return "Suc";
+    case LogLevel::Warning:    return "Wrn";
+    case LogLevel::Error:      return "Err";
     }
     MP_NotImplemented;
     return nullptr;
   }
 }
 
-static void LogToStdOut(mpInternal::LogLevel Level, const std::string& sMessage)
+static void DoLog(LogLevel Level, std::stringstream& ssFormattedMessage)
 {
-  printf("%s| %s\n", GetShortString(Level), sMessage.c_str());
+  if(auto pBlock = GetCurrentLogBlock())
+    pBlock->LogMessage();
+
+  auto sMessage = ssFormattedMessage.str();
+  PropagateLogMessage(Level, ssFormattedMessage.str());
 }
 
-static void LogToVisualStudio(mpInternal::LogLevel Level, const std::string& sMessage)
+static void LogToStdOut(LogLevel Level, const std::string& sMessage)
 {
+  printf("%s| ", GetShortString(Level));
+
+  auto uiIndentation = g_uiLogBlocksCount;
+  auto szPrefix = "";
+  switch(Level)
+  {
+  case LogLevel::BlockBegin:
+    szPrefix = ">> ";
+    --uiIndentation;
+    break;
+  case LogLevel::BlockEnd:
+    szPrefix = "<< ";
+    --uiIndentation;
+    break;
+  case LogLevel::Info:
+  case LogLevel::Success:
+  case LogLevel::Warning:
+  case LogLevel::Error:
+    break;
+  default:
+    MP_NotImplemented;
+    break;
+  }
+  auto szIndentationString = "  ";
+  for(size_t i = 0; i < uiIndentation; ++i)
+  {
+    printf(szIndentationString);
+  }
+  printf("%s%s\n", szPrefix, sMessage.c_str());
+}
+
+static void LogToVisualStudio(LogLevel Level, const std::string& sMessage)
+{
+  // Prefix
   OutputDebugStringA(GetShortString(Level));
   OutputDebugStringA("| ");
+
+  auto uiIndentation = g_uiLogBlocksCount;
+  auto szPrefix = "";
+  switch(Level)
+  {
+  case LogLevel::BlockBegin:
+    szPrefix = ">> ";
+    --uiIndentation;
+    break;
+  case LogLevel::BlockEnd:
+    szPrefix = "<< ";
+    --uiIndentation;
+    break;
+  case LogLevel::Info:
+  case LogLevel::Success:
+  case LogLevel::Warning:
+  case LogLevel::Error:
+    break;
+  default:
+    MP_NotImplemented;
+    break;
+  }
+
+  auto szIndentationString = "  ";
+  for(size_t i = 0; i < uiIndentation; ++i)
+  {
+    OutputDebugStringA(szIndentationString);
+  }
+
+  // The actual message
+  OutputDebugStringA(szPrefix);
   OutputDebugStringA(sMessage.c_str());
   OutputDebugStringA("\n");
+}
+
+static void PropagateLogMessage(LogLevel Level, const std::string& sMessage)
+{
+  LogToStdOut(Level, sMessage);
+  LogToVisualStudio(Level, sMessage);
 }
 
 #define FORMAT_MESSAGE(outMessage, szFormat) \
@@ -80,46 +194,51 @@ static void LogToVisualStudio(mpInternal::LogLevel Level, const std::string& sMe
     mpString::AppendFormatV(outMessage, szFormat, vargs);\
   } while(false)
 
+void mpLog::BlockBegin(const char* szFormat, ...)
+{
+  MP_Assert(g_uiLogBlocksCount < g_uiMaxLogBlocksCount,
+            "Exceeded allowed number of nested log blocks.");
+
+  std::stringstream ssMessage;
+  FORMAT_MESSAGE(ssMessage, szFormat);
+
+  new (g_LogBlocks + g_uiLogBlocksCount) LogBlock(ssMessage.str());
+  ++g_uiLogBlocksCount;
+}
+
+void mpLog::BlockEnd()
+{
+  MP_Assert(g_uiLogBlocksCount > 0, "Called BlockEnd more often than BlockBegin!");
+  g_LogBlocks[g_uiLogBlocksCount - 1].~LogBlock();
+  --g_uiLogBlocksCount;
+}
+
 void MP_WrapperAPI mpLog::Info(const char* szFormat, ...)
 {
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(mpInternal::LogLevel::Info, ssMessage.str());
+  DoLog(LogLevel::Info, ssMessage);
 }
 
 void MP_WrapperAPI mpLog::Success(const char* szFormat, ...)
 {
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(mpInternal::LogLevel::Success, ssMessage);
+  DoLog(LogLevel::Success, ssMessage);
 }
 
 void MP_WrapperAPI mpLog::Warning(const char* szFormat, ...)
 {
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(mpInternal::LogLevel::Warning, ssMessage);
+  DoLog(LogLevel::Warning, ssMessage);
 }
 
 void MP_WrapperAPI mpLog::Error(const char* szFormat, ...)
 {
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(mpInternal::LogLevel::Error, ssMessage);
+  DoLog(LogLevel::Error, ssMessage);
 }
 
 #undef FORMAT_MESSAGE
-
-void mpInternal::DoLog(LogLevel Level, std::stringstream& ssMessage)
-{
-  if(g_pCurrentBlock)
-  {
-    for(mpUInt64 i = 0; i < g_pCurrentBlock->GetIndentation(); ++i)
-    {
-      ssMessage << "  ";
-    }
-  }
-  auto sMessage = ssMessage.str();
-  LogToStdOut(Level, sMessage);
-  LogToVisualStudio(Level, sMessage);
-}
