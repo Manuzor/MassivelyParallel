@@ -152,29 +152,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="mpWrapper\Api.h" />
-    <ClInclude Include="mpWrapper\ArrayPtr.h" />
-    <ClInclude Include="mpWrapper\Buffer.h" />
-    <ClInclude Include="mpWrapper\CommandQueue.h" />
+    <ClInclude Include="mpWrapper\Core.h" />
+    <ClInclude Include="mpWrapper\Dependencies.h" />
+    <ClInclude Include="mpWrapper\Common\ArrayPtr.h" />
+    <ClInclude Include="mpWrapper\Core\Buffer.h" />
+    <ClInclude Include="mpWrapper\Core\CommandQueue.h" />
     <ClInclude Include="mpWrapper\Common.h" />
-    <ClInclude Include="mpWrapper\Context.h" />
+    <ClInclude Include="mpWrapper\Core\Context.h" />
     <ClInclude Include="mpWrapper\Dependencies\OpenCL.h" />
     <ClInclude Include="mpWrapper\Dependencies\Stl.h" />
     <ClInclude Include="mpWrapper\Dependencies\Windows.h" />
-    <ClInclude Include="mpWrapper\Device.h" />
-    <ClInclude Include="mpWrapper\Error.h" />
-    <ClInclude Include="mpWrapper\Kernel.h" />
-    <ClInclude Include="mpWrapper\Logging.h" />
-    <ClInclude Include="mpWrapper\Startup.h" />
+    <ClInclude Include="mpWrapper\Core\Device.h" />
+    <ClInclude Include="mpWrapper\Common\Error.h" />
+    <ClInclude Include="mpWrapper\Core\Kernel.h" />
+    <ClInclude Include="mpWrapper\Common\Logging.h" />
+    <ClInclude Include="mpWrapper\Foundation\Startup.h" />
+    <ClInclude Include="mpWrapper\Utilities.h" />
     <ClInclude Include="mpWrapper\Utilities\Math.h" />
     <ClInclude Include="mpWrapper\PCH.h" />
-    <ClInclude Include="mpWrapper\Platform.h" />
-    <ClInclude Include="mpWrapper\Program.h" />
-    <ClInclude Include="mpWrapper\Result.h" />
-    <ClInclude Include="mpWrapper\Assert.h" />
-    <ClInclude Include="mpWrapper\Scope.h" />
-    <ClInclude Include="mpWrapper\String.h" />
-    <ClInclude Include="mpWrapper\TypeDeclarations.h" />
+    <ClInclude Include="mpWrapper\Core\Platform.h" />
+    <ClInclude Include="mpWrapper\Core\Program.h" />
+    <ClInclude Include="mpWrapper\Common\Result.h" />
+    <ClInclude Include="mpWrapper\Core\Scope.h" />
+    <ClInclude Include="mpWrapper\Common\Types.h" />
     <ClInclude Include="mpWrapper\Types\Matrix.h" />
     <ClInclude Include="mpWrapper\Utilities\Console.h" />
     <ClInclude Include="mpWrapper\Utilities\File.h" />
@@ -182,18 +182,18 @@
     <ClInclude Include="mpWrapper\Utilities\Time.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mpWrapper\Implementation\Assert.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Buffer.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\CommandQueue.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Context.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Device.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Error.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Kernel.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Logging.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Platform.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Program.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\Scope.cpp" />
-    <ClCompile Include="mpWrapper\Implementation\String.cpp" />
+    <ClCompile Include="mpWrapper\Common\Implementation\Error.cpp" />
+    <ClCompile Include="mpWrapper\Core\Implementation\Buffer.cpp" />
+    <ClCompile Include="mpWrapper\Core\Implementation\CommandQueue.cpp" />
+    <ClCompile Include="mpWrapper\Core\Implementation\Context.cpp" />
+    <ClCompile Include="mpWrapper\Core\Implementation\Device.cpp" />
+    <ClCompile Include="mpWrapper\Common\Implementation\Error_TranslateStatusCode.cpp" />
+    <ClCompile Include="mpWrapper\Core\Implementation\Kernel.cpp" />
+    <ClCompile Include="mpWrapper\Common\Implementation\Logging.cpp" />
+    <ClCompile Include="mpWrapper\Core\Implementation\Platform.cpp" />
+    <ClCompile Include="mpWrapper\Core\Implementation\Program.cpp" />
+    <ClCompile Include="mpWrapper\Core\Implementation\Scope.cpp" />
+    <ClCompile Include="mpWrapper\Utilities\Implementation\String.cpp" />
     <ClCompile Include="mpWrapper\PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">mpWrapper/PCH.h</PrecompiledHeaderFile>
@@ -204,14 +204,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">mpWrapper/PCH.h</PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="mpWrapper\Implementation\Startup.cpp" />
+    <ClCompile Include="mpWrapper\Foundation\Implementation\Startup.cpp" />
     <ClCompile Include="mpWrapper\Types\Implementation\Matrix.cpp" />
     <ClCompile Include="mpWrapper\Utilities\Implementation\Console.cpp" />
     <ClCompile Include="mpWrapper\Utilities\Implementation\File.cpp" />
-    <ClCompile Include="mpWrapper\Utilities\Time.cpp" />
+    <ClCompile Include="mpWrapper\Utilities\Implementation\Time.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="mpWrapper\Implementation\Startup.inl" />
+    <None Include="mpWrapper\Foundation\Implementation\Startup.inl" />
     <None Include="mpWrapper\Types\Implementation\Matrix.inl" />
     <None Include="mpWrapper\Utilities\Implementation\Time.inl" />
   </ItemGroup>

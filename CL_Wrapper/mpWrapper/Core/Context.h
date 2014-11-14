@@ -1,5 +1,5 @@
 #pragma once
-#include "mpWrapper/Device.h"
+#include "mpWrapper/Core/Device.h"
 
 class MP_WrapperAPI mpContext
 {

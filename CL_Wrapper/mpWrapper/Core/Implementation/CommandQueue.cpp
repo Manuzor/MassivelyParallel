@@ -1,5 +1,5 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/CommandQueue.h"
+#include "mpWrapper/Core/CommandQueue.h"
 
 void mpCommandQueue::Initialize(const mpContext& Context, const mpDevice& Device)
 {

@@ -1,7 +1,7 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/Kernel.h"
-#include "mpWrapper/Buffer.h"
-#include "mpWrapper/CommandQueue.h"
+#include "mpWrapper/Core/Kernel.h"
+#include "mpWrapper/Core/Buffer.h"
+#include "mpWrapper/Core/CommandQueue.h"
 
 void mpKernel::Initialize(const mpCommandQueue& Queue, const mpProgram& Program, const char* szKernelName)
 {

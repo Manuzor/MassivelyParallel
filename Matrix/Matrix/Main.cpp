@@ -3,7 +3,7 @@
 #include "mpWrapper/Types/Matrix.h"
 #include "mpWrapper/Utilities/Math.h"
 #include "mpWrapper/Utilities/Time.h"
-#include "mpWrapper/Startup.h"
+#include "mpWrapper/Foundation/Startup.h"
 
 static void Test1()
 {

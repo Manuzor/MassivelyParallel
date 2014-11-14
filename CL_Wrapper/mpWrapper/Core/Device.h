@@ -1,6 +1,5 @@
 #pragma once
-#include "mpWrapper/Platform.h"
-#include "mpWrapper/ArrayPtr.h"
+#include "mpWrapper/Core/Platform.h"
 
 class MP_WrapperAPI mpDevice
 {

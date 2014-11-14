@@ -9,7 +9,7 @@
 #define MP_Inline inline
 #define MP_ForceInline __forceinline
 
-#include "mpWrapper/TypeDeclarations.h"
+#include "mpWrapper/Common/Types.h"
 
 namespace mpInternal
 {
@@ -29,10 +29,10 @@ namespace mpInternal
 
 #define MP_Min(lhs, rhs) ((lhs) < (rhs) ? (lhs) : (rhs))
 
-#include "mpWrapper/Result.h"
-#include "mpWrapper/Assert.h"
-#include "mpWrapper/Logging.h"
-#include "mpWrapper/Error.h"
+#include "mpWrapper/Common/Result.h"
+#include "mpWrapper/Common/Error.h"
+#include "mpWrapper/Common/Logging.h"
+#include "mpWrapper/Common/ArrayPtr.h"
 
 #define MP_NotImplemented MP_ReportError("Not implemented.")
 

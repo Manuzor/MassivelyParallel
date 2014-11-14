@@ -1,5 +1,5 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/Scope.h"
+#include "mpWrapper/Core/Scope.h"
 
 static size_t g_uiGPUScopeCount = 0;
 static mpGPUScope* g_pCurrentScope = nullptr;

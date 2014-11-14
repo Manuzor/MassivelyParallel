@@ -92,6 +92,6 @@ namespace mpInternal
   }
 }
 
-#include "mpWrapper/Implementation/Startup.inl"
+#include "mpWrapper/Foundation/Implementation/Startup.inl"
 
 #define MP_EntryClass(AppType) int main(int argc, const char* argv[]) { return ::mpInternal::EntryPoint<AppType>(argc, argv); }

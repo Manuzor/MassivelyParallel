@@ -1,15 +1,15 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/String.h"
+#include "mpWrapper/Utilities/String.h"
 
-void mpString::AppendFormat(std::stringstream& out_Formatted, const char* szFormat, ...)
+void mpString::mpAppendFormat(std::stringstream& out_Formatted, const char* szFormat, ...)
 {
   va_list vargs;
   va_start(vargs, szFormat);
   MP_OnScopeExit { va_end(vargs); };
-  AppendFormatV(out_Formatted, szFormat, vargs);
+  mpAppendFormatV(out_Formatted, szFormat, vargs);
 }
 
-void mpString::AppendFormatV(std::stringstream& out_Formatted, const char* szFormat, va_list args)
+void mpString::mpAppendFormatV(std::stringstream& out_Formatted, const char* szFormat, va_list args)
 {
   static const size_t maxAllocationSize(1024 * 1024 * 10); // 10 MB
   static const size_t bufferSize(1024);

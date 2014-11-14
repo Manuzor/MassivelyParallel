@@ -1,6 +1,5 @@
 #pragma once
-#include "mpWrapper/Context.h"
-#include "mpWrapper/ArrayPtr.h"
+#include "mpWrapper/Core/Context.h"
 
 class mpCommandQueue;
 

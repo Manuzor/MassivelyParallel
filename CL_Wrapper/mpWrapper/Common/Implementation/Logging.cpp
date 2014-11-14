@@ -1,7 +1,6 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/Logging.h"
-#include "mpWrapper/String.h"
-#include "mpWrapper/Startup.h"
+#include "mpWrapper/Utilities/String.h"
+#include "mpWrapper/Foundation/Startup.h"
 
 namespace
 {
@@ -212,7 +211,7 @@ static void PropagateLogMessage(LogLevel Level, const std::string& sMessage)
     va_list vargs;\
     va_start(vargs, szFormat);\
     MP_OnScopeExit { va_end(vargs); };\
-    mpString::AppendFormatV(outMessage, szFormat, vargs);\
+    mpString::mpAppendFormatV(outMessage, szFormat, vargs);\
   } while(false)
 
 void mpLog::BlockBegin(const char* szFormat, ...)

@@ -1,5 +1,5 @@
 #pragma once
-#include "mpWrapper/Program.h"
+#include "mpWrapper/Core/Program.h"
 
 class mpBuffer;
 class mpCommandQueue;

@@ -1,6 +1,6 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/Context.h"
-#include "mpWrapper/Device.h"
+#include "mpWrapper/Core/Context.h"
+#include "mpWrapper/Core/Device.h"
 
 void mpContext::Initialize(const mpDevice& Device)
 {

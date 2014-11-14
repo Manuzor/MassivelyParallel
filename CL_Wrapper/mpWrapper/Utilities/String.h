@@ -28,8 +28,14 @@ namespace mpInternal
   };
 }
 
-template<typename Type, typename IteratorType>
-Type mpParse(IteratorType Begin, IteratorType End)
+namespace mpString
 {
-  return mpInternal::ParseHelper<Type>::Parse(Begin, End);
+  MP_WrapperAPI void mpAppendFormat(std::stringstream& out_Formatted, const char* szFormat, ...);
+  MP_WrapperAPI void mpAppendFormatV(std::stringstream& out_Formatted, const char* szFormat, va_list args);
+
+  template<typename Type, typename IteratorType>
+  Type mpParse(IteratorType Begin, IteratorType End)
+  {
+    return mpInternal::ParseHelper<Type>::Parse(Begin, End);
+  }
 }

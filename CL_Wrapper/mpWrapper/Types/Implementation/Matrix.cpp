@@ -55,7 +55,7 @@ static size_t ReadRow(BufferType& out_Buffer, IteratorType& Current, IteratorTyp
       ++Current;
 
     sTemp.assign(ValueStart, ValueEnd);
-    auto TheValue = mpParse<ElementType>(ValueStart, ValueEnd);
+    auto TheValue = mpString::mpParse<ElementType>(ValueStart, ValueEnd);
     out_Buffer.push_back(TheValue);
   }
 

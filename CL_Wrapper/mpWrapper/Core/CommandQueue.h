@@ -1,6 +1,6 @@
 #pragma once
-#include "mpWrapper/Context.h"
-#include "mpWrapper/Device.h"
+#include "mpWrapper/Core/Context.h"
+#include "mpWrapper/Core/Device.h"
 
 class MP_WrapperAPI mpCommandQueue
 {

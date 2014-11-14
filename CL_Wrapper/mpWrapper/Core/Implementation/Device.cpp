@@ -1,5 +1,5 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/Device.h"
+#include "mpWrapper/Core/Device.h"
 
 namespace
 {

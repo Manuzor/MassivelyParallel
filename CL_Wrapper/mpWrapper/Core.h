@@ -1,0 +1,10 @@
+#include "mpWrapper/PCH.h"
+
+#include "mpWrapper/Core/Platform.h"
+#include "mpWrapper/Core/Device.h"
+#include "mpWrapper/Core/Context.h"
+#include "mpWrapper/Core/CommandQueue.h"
+#include "mpWrapper/Core/Program.h"
+#include "mpWrapper/Core/Kernel.h"
+#include "mpWrapper/Core/Buffer.h"
+#include "mpWrapper/Core/Scope.h"

@@ -1,6 +1,6 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/Buffer.h"
-#include "mpWrapper/CommandQueue.h"
+#include "mpWrapper/Core/Buffer.h"
+#include "mpWrapper/Core/CommandQueue.h"
 
 void mpBuffer::Initialize(const mpContext& Context, mpBufferFlags Flags, size_t uiBufferSize, void* RawBuffer)
 {

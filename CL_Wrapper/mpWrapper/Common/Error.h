@@ -1,5 +1,4 @@
 #pragma once
-#include "mpWrapper/Result.h"
 
 namespace mpInternal
 {
@@ -8,8 +7,11 @@ namespace mpInternal
   void MP_WrapperAPI CLCallFailed(const char* szFile, size_t uiLine, const char* szCall, mpResult result);
 }
 
+MP_WrapperAPI const char* mpTranslateStatusCode(cl_int iStatusCode);
+
 #define MP_DebugBreak do { __debugbreak(); } while(false)
 #define MP_ReportError(...) mpInternal::ReportError(__FILE__, __LINE__, __VA_ARGS__)
 #define MP_Assert(condition, ...) do { if(!(condition)) { mpInternal::AssertionFailed(__FILE__, __LINE__, #condition, __VA_ARGS__); } } while(false)
 
 #define MP_Verify(clCall) do { mpResult result = (clCall); if(result.Failed()) { mpInternal::CLCallFailed(__FILE__, __LINE__, #clCall, result); } } while(false)
+

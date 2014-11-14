@@ -1,5 +1,4 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/Error.h"
 
 const char* mpTranslateStatusCode(cl_int iStatusCode)
 {

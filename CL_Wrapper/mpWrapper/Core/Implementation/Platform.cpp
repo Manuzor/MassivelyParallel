@@ -1,5 +1,5 @@
 #include "mpWrapper/PCH.h"
-#include "mpWrapper/Platform.h"
+#include "mpWrapper/Core/Platform.h"
 
 void mpPlatform::Initialize()
 {
