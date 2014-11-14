@@ -34,6 +34,12 @@ private:
   int m_iExitCode;
 };
 
+namespace mpStartup
+{
+  MP_WrapperAPI void Startup();
+  MP_WrapperAPI void Shutdown();
+}
+
 namespace mpInternal
 {
   template<typename AppType>
@@ -45,11 +51,13 @@ namespace mpInternal
     pApp->SetCommandLine(argc, argv);
 
     pApp->PreStartup();
+    mpStartup::Startup();
     pApp->PostStartup();
 
     while(pApp->Run() == mpApplication::RunBehavior::Continue);
 
     pApp->PreShutdown();
+    mpStartup::Shutdown();
     pApp->PostShutdown();
 
     auto iExitCode = pApp->GetExitCode();

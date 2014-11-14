@@ -13,3 +13,11 @@ void mpApplication::SetCommandLine(int argc, const char* argv[])
   m_iArgumentCount = argc;
   m_szArguments = argv;
 }
+
+void mpStartup::Startup()
+{
+}
+
+void mpStartup::Shutdown()
+{
+}
