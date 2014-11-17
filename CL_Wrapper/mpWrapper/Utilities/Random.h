@@ -1,5 +1,30 @@
 #pragma once
 #include <random>
+#include "mpWrapper/Utilities/Range.h"
+
+namespace mpInternal
+{
+  template<typename T>
+  struct mpGetUniformDistributionTypeHelper
+  {
+    using Type = std::uniform_int_distribution<T>;
+  };
+
+  template<>
+  struct mpGetUniformDistributionTypeHelper<cl_float>
+  {
+    using Type = std::uniform_real_distribution<cl_float>;
+  };
+
+  template<>
+  struct mpGetUniformDistributionTypeHelper<double>
+  {
+    using Type = std::uniform_real_distribution<double>;
+  };
+
+  template<typename T>
+  using mpUniformDistributionType = typename mpGetUniformDistributionTypeHelper<T>::Type;
+}
 
 namespace mpRandom
 {
@@ -18,18 +43,17 @@ namespace mpRandom
     MP_ForceInline mpUInt32 GetSeed() const { return m_uiSeed; }
     MP_ForceInline void Reset() { SetSeed(GetSeed()); }
 
-    template<typename IntegerType = cl_int>
-    IntegerType GenerateInteger(IntegerType iMin = 0, IntegerType iMax = std::numeric_limits<IntegerType>::max())
+    template<typename NumberType>
+    NumberType Generate(NumberType Min, NumberType Max)
     {
-        std::uniform_int_distribution<IntegerType> Generator(iMin, iMax);
-        return Generator(m_Engine);
+      return Generate(mpRange<NumberType>{ Min, Max });
     }
 
-    template<typename FloatType = cl_float>
-    FloatType GenerateFloat(FloatType fMin = 0.0f, FloatType fMax = 1.0f)
+    template<typename NumberType>
+    NumberType Generate(mpRange<NumberType> Range)
     {
-        std::uniform_real_distribution<FloatType> Generator(fMin, fMax);
-        return Generator(m_Engine);
+      mpInternal::mpUniformDistributionType<NumberType> Generator(Range.m_Min, Range.m_Max);
+      return Generator(m_Engine);
     }
 
   private:

@@ -179,6 +179,7 @@
     <ClInclude Include="mpWrapper\Utilities\Console.h" />
     <ClInclude Include="mpWrapper\Utilities\File.h" />
     <ClInclude Include="mpWrapper\Utilities\Random.h" />
+    <ClInclude Include="mpWrapper\Utilities\Range.h" />
     <ClInclude Include="mpWrapper\Utilities\String.h" />
     <ClInclude Include="mpWrapper\Utilities\Time.h" />
   </ItemGroup>
