@@ -130,6 +130,8 @@ static void Test4()
 
 static void Test5(const char* szFileName, const char* szKernelFile)
 {
+  MP_LogBlock("Test5 (%s and %s)", szFileName, szKernelFile);
+
   auto Platform = mpPlatform::Get();
   auto Device = mpDevice::GetGPU(Platform, 0);
   mpContext Context;
@@ -154,42 +156,36 @@ static void Test5(const char* szFileName, const char* szKernelFile)
 
   auto Right = Left;
 
-  mpLog::Info("Calculating result on the CPU...");
-  auto Beginning = mpTime::Now();
-  auto CPUResult = Left * Right;
-  auto CPUTime = mpTime::Now() - Beginning;
-  mpLog::Success("CPU calculation done in %f seconds.", CPUTime);
+  decltype(Left * Right) CPUResult(NoInit);
+  decltype(Left * Right) GPUResult(NoInit);
+
+  double CPUTime;
+  double GPUTime;
 
   {
+    MP_LogBlock("CPU");
+    mpLog::Info("Calculating...");
+    auto Beginning = mpTime::Now();
+    CPUResult = std::move(Left * Right);
+    CPUTime = (mpTime::Now() - Beginning).GetSeconds();
+    mpLog::Success("Finished in %f seconds.", CPUTime);
+  }
+
+  {
+    MP_LogBlock("GPU");
     MP_GPUScope(Context, Commands, Kernel);
 
-    mpLog::Info("Calculating result on the GPU...");
+    mpLog::Info("Calculating...");
     auto Beginning = mpTime::Now();
-    auto GPUResult = Left * Right;
-    auto GPUTime = mpTime::Now() - Beginning;
-    mpLog::Success("GPU calculation done in %f seconds.", GPUTime);
+    GPUResult = std::move(Left * Right);
+    GPUTime = (mpTime::Now() - Beginning).GetSeconds();
+    mpLog::Success("Finished in %f seconds.", GPUTime);
+  }
 
-    {
-      auto CPUSeconds = CPUTime.GetSeconds();
-      auto GPUSeconds = GPUTime.GetSeconds();
-      if(CPUSeconds < GPUSeconds)
-      {
-        auto Difference = GPUSeconds - CPUSeconds;
-        mpLog::Info("The CPU was faster than the GPU by %.1f times (%f seconds).",
-                    GPUSeconds / CPUSeconds,
-                    Difference);
-      }
-      else
-      {
-        auto Difference = CPUSeconds - GPUSeconds;
-        mpLog::Info("The GPU was faster than the CPU by %.1f times (%f seconds).",
-                    CPUSeconds / GPUSeconds,
-                    Difference);
-      }
-    }
-
+  {
     auto comparisonEpsilon = 0.9f;
-    mpLog::Info("Comparing CPU and GPU results with an epsilon of %f", comparisonEpsilon);
+    MP_LogBlock("Comparing CPU and GPU results");
+    mpLog::Info("Epsilon = %f", comparisonEpsilon);
 
     MP_Assert(GPUResult.GetHeight() == CPUResult.GetHeight(), "Invalid height");
     MP_Assert(GPUResult.GetWidth() == CPUResult.GetWidth(), "Invalid width");
@@ -203,9 +199,22 @@ static void Test5(const char* szFileName, const char* szKernelFile)
         MP_Assert(mpMath::IsEqual(gpu, cpu, comparisonEpsilon), "Invalid result.");
       }
     }
-  }
 
-  mpLog::Success("Test5 completed.\n");
+    if(CPUTime < GPUTime)
+    {
+      auto Difference = GPUTime - CPUTime;
+      mpLog::Info("The CPU was faster than the GPU by %.1f times (%f seconds).",
+                  GPUTime / CPUTime,
+                  Difference);
+    }
+    else
+    {
+      auto Difference = CPUTime - GPUTime;
+      mpLog::Info("The GPU was faster than the CPU by %.1f times (%f seconds).",
+                  CPUTime / GPUTime,
+                  Difference);
+    }
+  }
 }
 
 class Main : public mpApplication

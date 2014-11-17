@@ -14,6 +14,8 @@ struct mpMatrixTemplate
 {
   using ElementType = Type;
 
+  mpMatrixTemplate(DoNotInit) : m_uiHeight(0), m_uiWidth(0), m_Data(nullptr) {}
+
   mpMatrixTemplate(size_t uiHeight, size_t uiWidth) :
     m_uiHeight(uiHeight),
     m_uiWidth(uiWidth)
@@ -61,8 +63,10 @@ struct mpMatrixTemplate
     memcpy(m_Data, Other.m_Data, GetByteCount());
   }
 
-  void operator=(mpMatrixTemplate Copy)
+  void operator=(const mpMatrixTemplate& ToCopy)
   {
+    mpMatrixTemplate Copy(ToCopy);
+
     using namespace std;
     swap(m_uiHeight, Copy.m_uiHeight);
     swap(m_uiWidth, Copy.m_uiWidth);
@@ -75,8 +79,8 @@ struct mpMatrixTemplate
       return;
 
     m_Data = ToMove.m_Data; ToMove.m_Data = nullptr;
-    m_uiHeight = ToMove.m_uiHeight; ToMove.m_uiHeight = nullptr;
-    m_uiWidth = ToMove.m_uiWidth; ToMove.m_uiWidth = nullptr;
+    m_uiHeight = ToMove.m_uiHeight; ToMove.m_uiHeight = 0;
+    m_uiWidth = ToMove.m_uiWidth; ToMove.m_uiWidth = 0;
   }
 
   ~mpMatrixTemplate()
