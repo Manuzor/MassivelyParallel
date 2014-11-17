@@ -4,7 +4,7 @@
 
 static mpLogLevel g_CurrentLogLevel = mpLogLevel::All;
 
-void PropagateLogMessage(mpLogLevel Level, const std::string& sMessage);
+void PropagateLogMessage(mpLogLevel Level, const std::string& sMessage, size_t uiIndentation);
 
 namespace
 {
@@ -31,7 +31,11 @@ namespace
       if(m_bNeverDoAnything || !m_bHasLogged)
         return;
 
-      PropagateLogMessage(mpLogLevel::BlockEnd, m_sMessage);
+      if(m_pParent)
+        m_pParent->LogMessage();
+
+      PropagateLogMessage(mpLogLevel::BlockEnd, m_sMessage, GetLocalIndentation());
+      m_bNeverDoAnything = true;
     }
 
     void LogMessage()
@@ -39,8 +43,11 @@ namespace
       if(m_bNeverDoAnything || m_bHasLogged)
         return;
 
+      if(m_pParent)
+        m_pParent->LogMessage();
+
+      PropagateLogMessage(mpLogLevel::BlockBegin, m_sMessage, GetLocalIndentation());
       m_bHasLogged = true;
-      PropagateLogMessage(mpLogLevel::BlockBegin, m_sMessage);
     }
 
     MP_ForceInline size_t GetIndentation() const { return m_uiIndentation; }
@@ -52,6 +59,8 @@ namespace
     std::string m_sMessage;
     bool m_bHasLogged = false;
     bool m_bNeverDoAnything = false;
+
+    MP_ForceInline size_t GetLocalIndentation() const { return m_uiIndentation > 0 ? m_uiIndentation - 1 : 0; }
   };
 
   static LogBlock* g_pCurrentBlock;
@@ -73,7 +82,7 @@ static void DoLog(mpLogLevel Level, std::stringstream& ssFormattedMessage)
   g_pCurrentBlock->LogMessage();
 
   auto sMessage = ssFormattedMessage.str();
-  PropagateLogMessage(Level, ssFormattedMessage.str());
+  PropagateLogMessage(Level, ssFormattedMessage.str(), g_pCurrentBlock->GetIndentation());
 }
 namespace
 {
@@ -112,13 +121,12 @@ static void SetConsoleColor(WORD iColor)
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), iColor);
 }
 
-static void LogToStdOut(mpLogLevel Level, const std::string& sMessage)
+static void LogToStdOut(mpLogLevel Level, const std::string& sMessage, size_t uiIndentation)
 {
   CONSOLE_SCREEN_BUFFER_INFO PreviousConsoleState;
   GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &PreviousConsoleState);
   MP_OnScopeExit{ SetConsoleColor(PreviousConsoleState.wAttributes); };
 
-  auto uiIndentation = g_pCurrentBlock->GetIndentation();
   auto szPrefix = "";
 
   static_assert(mpLogLevel::COUNT == 8, "Update this function.");
@@ -127,12 +135,10 @@ static void LogToStdOut(mpLogLevel Level, const std::string& sMessage)
   case mpLogLevel::BlockBegin:
     SetConsoleColor(ConsoleColor::DarkGreen);
     szPrefix = ">> ";
-    --uiIndentation;
     break;
   case mpLogLevel::BlockEnd:
     SetConsoleColor(ConsoleColor::DarkGreen);
     szPrefix = "<< ";
-    --uiIndentation;
     break;
   case mpLogLevel::Error:
     SetConsoleColor(ConsoleColor::BrightRed);
@@ -169,13 +175,12 @@ static void LogToStdOut(mpLogLevel Level, const std::string& sMessage)
   printf("%s%s\n", szPrefix, sMessage.c_str());
 }
 
-static void LogToVisualStudio(mpLogLevel Level, const std::string& sMessage)
+static void LogToVisualStudio(mpLogLevel Level, const std::string& sMessage, size_t uiIndentation)
 {
   // Prefix
   OutputDebugStringA(Level.GetShortString());
   OutputDebugStringA("| ");
 
-  auto uiIndentation = g_pCurrentBlock->GetIndentation();
   auto szPrefix = "";
 
   static_assert(mpLogLevel::COUNT == 8, "Update this function.");
@@ -183,11 +188,9 @@ static void LogToVisualStudio(mpLogLevel Level, const std::string& sMessage)
   {
   case mpLogLevel::BlockBegin:
     szPrefix = ">> ";
-    --uiIndentation;
     break;
   case mpLogLevel::BlockEnd:
     szPrefix = "<< ";
-    --uiIndentation;
     break;
   case mpLogLevel::Error:
   case mpLogLevel::SeriousWarning:
@@ -214,10 +217,10 @@ static void LogToVisualStudio(mpLogLevel Level, const std::string& sMessage)
   OutputDebugStringA("\n");
 }
 
-static void PropagateLogMessage(mpLogLevel Level, const std::string& sMessage)
+static void PropagateLogMessage(mpLogLevel Level, const std::string& sMessage, size_t uiIndentation)
 {
-  LogToStdOut(Level, sMessage);
-  LogToVisualStudio(Level, sMessage);
+  LogToStdOut      (Level, sMessage, uiIndentation);
+  LogToVisualStudio(Level, sMessage, uiIndentation);
 }
 
 #define FORMAT_MESSAGE(outMessage, szFormat) \

@@ -130,7 +130,9 @@ static void Test4()
 
 static void Test5(const char* szFileName, const char* szKernelFile)
 {
-  MP_LogBlock("Test5 (%s and %s)", szFileName, szKernelFile);
+  MP_LogBlock("Test5");
+  mpLog::Info("Matrix: %s", szFileName);
+  mpLog::Info("Kernel: %s", szKernelFile);
 
   auto Platform = mpPlatform::Get();
   auto Device = mpDevice::GetGPU(Platform, 0);
@@ -183,7 +185,7 @@ static void Test5(const char* szFileName, const char* szKernelFile)
   }
 
   {
-    auto comparisonEpsilon = 0.9f;
+    auto comparisonEpsilon = 1e-4f;
     MP_LogBlock("Comparing CPU and GPU results");
     mpLog::Info("Epsilon = %f", comparisonEpsilon);
 
@@ -199,6 +201,8 @@ static void Test5(const char* szFileName, const char* szKernelFile)
         MP_Assert(mpMath::IsEqual(gpu, cpu, comparisonEpsilon), "Invalid result.");
       }
     }
+
+    mpLog::Success("The results are equal!");
 
     if(CPUTime < GPUTime)
     {
@@ -228,10 +232,10 @@ class Main : public mpApplication
 
   virtual QuitOrContinue Run() final override
   {
-    //Test1();
-    //Test2();
-    //Test3();
-    //Test4();
+    Test1();
+    Test2();
+    Test3();
+    Test4();
     Test5("Data/HugeRandomMatrix.txt", "Kernels/Matrix.cl");
 
     return Quit;

@@ -2,6 +2,8 @@
 
 struct mpResult
 {
+  MP_ForceInline static mpResult Success() { return CL_SUCCESS; }
+
   mpResult(cl_int iStatusCode) : m_Status(iStatusCode) {}
 
   MP_ForceInline bool Succeeded() { return m_Status == CL_SUCCESS; }
