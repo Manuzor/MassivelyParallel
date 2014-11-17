@@ -15,3 +15,4 @@ MP_WrapperAPI const char* mpTranslateStatusCode(cl_int iStatusCode);
 
 #define MP_Verify(clCall) do { mpResult result = (clCall); if(result.Failed()) { mpInternal::CLCallFailed(__FILE__, __LINE__, #clCall, result); } } while(false)
 
+#define MP_NotImplemented MP_ReportError("Not implemented.")

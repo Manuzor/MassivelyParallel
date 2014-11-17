@@ -34,6 +34,4 @@ namespace mpInternal
 #include "mpWrapper/Common/Logging.h"
 #include "mpWrapper/Common/ArrayPtr.h"
 
-#define MP_NotImplemented MP_ReportError("Not implemented.")
-
 #define Deref(x) (*(x))

@@ -211,6 +211,7 @@
     <ClCompile Include="mpWrapper\Utilities\Implementation\Time.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="mpWrapper\Common\Implementation\Logging.inl" />
     <None Include="mpWrapper\Foundation\Implementation\Startup.inl" />
     <None Include="mpWrapper\Types\Implementation\Matrix.inl" />
     <None Include="mpWrapper\Utilities\Implementation\Time.inl" />

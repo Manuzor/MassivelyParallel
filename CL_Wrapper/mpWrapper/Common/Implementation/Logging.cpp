@@ -2,72 +2,9 @@
 #include "mpWrapper/Utilities/String.h"
 #include "mpWrapper/Foundation/Startup.h"
 
-namespace
-{
-  struct LogLevel
-  {
-    enum Enum
-    {
-      BlockBegin = -2,
-      BlockEnd = -1,
+static mpLogLevel g_CurrentLogLevel = mpLogLevel::All;
 
-      Error,
-      SeriousWarning,
-      Warning,
-      Success,
-      Info,
-      Dev,
-      Debug,
-
-      COUNT
-    };
-
-    Enum m_Value;
-    LogLevel(Enum Value) : m_Value(Value) {}
-
-    MP_ForceInline operator Enum() const { return m_Value; }
-
-    const char* GetString()
-    {
-      static_assert(COUNT == 7, "Update this function.");
-      switch(m_Value)
-      {
-      case LogLevel::BlockBegin:     return "BlockBegin";
-      case LogLevel::BlockEnd:       return "BlockEnd";
-      case LogLevel::Error:          return "Error";
-      case LogLevel::SeriousWarning: return "SeriousWarning";
-      case LogLevel::Warning:        return "Warning";
-      case LogLevel::Success:        return "Success";
-      case LogLevel::Info:           return "Info";
-      case LogLevel::Dev:            return "Dev";
-      case LogLevel::Debug:          return "Debug";
-      }
-      MP_NotImplemented;
-      return nullptr;
-    }
-
-    const char* GetShortString()
-    {
-      static_assert(COUNT == 7, "Update this function.");
-      switch(m_Value)
-      {
-      case LogLevel::BlockBegin:     return ">>>";
-      case LogLevel::BlockEnd:       return "<<<";
-      case LogLevel::Error:          return "Err";
-      case LogLevel::SeriousWarning: return "Srs";
-      case LogLevel::Warning:        return "Wen";
-      case LogLevel::Success:        return "Suc";
-      case LogLevel::Info:           return "Ifo";
-      case LogLevel::Dev:            return "Dev";
-      case LogLevel::Debug:          return "Dbg";
-      }
-      MP_NotImplemented;
-      return nullptr;
-    }
-  };
-}
-
-void PropagateLogMessage(LogLevel Level, const std::string& sMessage);
+void PropagateLogMessage(mpLogLevel Level, const std::string& sMessage);
 
 namespace
 {
@@ -94,7 +31,7 @@ namespace
       if(m_bNeverDoAnything || !m_bHasLogged)
         return;
 
-      PropagateLogMessage(LogLevel::BlockEnd, m_sMessage);
+      PropagateLogMessage(mpLogLevel::BlockEnd, m_sMessage);
     }
 
     void LogMessage()
@@ -103,7 +40,7 @@ namespace
         return;
 
       m_bHasLogged = true;
-      PropagateLogMessage(LogLevel::BlockBegin, m_sMessage);
+      PropagateLogMessage(mpLogLevel::BlockBegin, m_sMessage);
     }
 
     MP_ForceInline size_t GetIndentation() const { return m_uiIndentation; }
@@ -131,7 +68,7 @@ MP_GlobalInitializationBegin
 
 MP_GlobalInitializationEnd
 
-static void DoLog(LogLevel Level, std::stringstream& ssFormattedMessage)
+static void DoLog(mpLogLevel Level, std::stringstream& ssFormattedMessage)
 {
   g_pCurrentBlock->LogMessage();
 
@@ -175,7 +112,7 @@ static void SetConsoleColor(WORD iColor)
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), iColor);
 }
 
-static void LogToStdOut(LogLevel Level, const std::string& sMessage)
+static void LogToStdOut(mpLogLevel Level, const std::string& sMessage)
 {
   CONSOLE_SCREEN_BUFFER_INFO PreviousConsoleState;
   GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &PreviousConsoleState);
@@ -184,38 +121,38 @@ static void LogToStdOut(LogLevel Level, const std::string& sMessage)
   auto uiIndentation = g_pCurrentBlock->GetIndentation();
   auto szPrefix = "";
 
-  static_assert(LogLevel::COUNT == 7, "Update this function.");
+  static_assert(mpLogLevel::COUNT == 8, "Update this function.");
   switch(Level)
   {
-  case LogLevel::BlockBegin:
+  case mpLogLevel::BlockBegin:
     SetConsoleColor(ConsoleColor::DarkGreen);
     szPrefix = ">> ";
     --uiIndentation;
     break;
-  case LogLevel::BlockEnd:
+  case mpLogLevel::BlockEnd:
     SetConsoleColor(ConsoleColor::DarkGreen);
     szPrefix = "<< ";
     --uiIndentation;
     break;
-  case LogLevel::Error:
+  case mpLogLevel::Error:
     SetConsoleColor(ConsoleColor::BrightRed);
     break;
-  case LogLevel::SeriousWarning:
+  case mpLogLevel::SeriousWarning:
     SetConsoleColor(ConsoleColor::BrightMagenta);
     break;
-  case LogLevel::Warning:
+  case mpLogLevel::Warning:
     SetConsoleColor(ConsoleColor::BrightYellow);
     break;
-  case LogLevel::Success:
+  case mpLogLevel::Success:
     SetConsoleColor(ConsoleColor::BrightGreen);
     break;
-  case LogLevel::Info:
+  case mpLogLevel::Info:
     SetConsoleColor(ConsoleColor::Default);
     break;
-  case LogLevel::Dev:
+  case mpLogLevel::Dev:
     SetConsoleColor(ConsoleColor::Gray);
     break;
-  case LogLevel::Debug:
+  case mpLogLevel::Debug:
     SetConsoleColor(ConsoleColor::BrightCyan);
     break;
   default:
@@ -232,7 +169,7 @@ static void LogToStdOut(LogLevel Level, const std::string& sMessage)
   printf("%s%s\n", szPrefix, sMessage.c_str());
 }
 
-static void LogToVisualStudio(LogLevel Level, const std::string& sMessage)
+static void LogToVisualStudio(mpLogLevel Level, const std::string& sMessage)
 {
   // Prefix
   OutputDebugStringA(Level.GetShortString());
@@ -241,24 +178,24 @@ static void LogToVisualStudio(LogLevel Level, const std::string& sMessage)
   auto uiIndentation = g_pCurrentBlock->GetIndentation();
   auto szPrefix = "";
 
-  static_assert(LogLevel::COUNT == 7, "Update this function.");
+  static_assert(mpLogLevel::COUNT == 8, "Update this function.");
   switch(Level)
   {
-  case LogLevel::BlockBegin:
+  case mpLogLevel::BlockBegin:
     szPrefix = ">> ";
     --uiIndentation;
     break;
-  case LogLevel::BlockEnd:
+  case mpLogLevel::BlockEnd:
     szPrefix = "<< ";
     --uiIndentation;
     break;
-  case LogLevel::Error:
-  case LogLevel::SeriousWarning:
-  case LogLevel::Warning:
-  case LogLevel::Success:
-  case LogLevel::Info:
-  case LogLevel::Dev:
-  case LogLevel::Debug:
+  case mpLogLevel::Error:
+  case mpLogLevel::SeriousWarning:
+  case mpLogLevel::Warning:
+  case mpLogLevel::Success:
+  case mpLogLevel::Info:
+  case mpLogLevel::Dev:
+  case mpLogLevel::Debug:
     break;
   default:
     MP_NotImplemented;
@@ -277,7 +214,7 @@ static void LogToVisualStudio(LogLevel Level, const std::string& sMessage)
   OutputDebugStringA("\n");
 }
 
-static void PropagateLogMessage(LogLevel Level, const std::string& sMessage)
+static void PropagateLogMessage(mpLogLevel Level, const std::string& sMessage)
 {
   LogToStdOut(Level, sMessage);
   LogToVisualStudio(Level, sMessage);
@@ -312,51 +249,89 @@ void mpLog::BlockEnd()
 
 void mpLog::Error(const char* szFormat, ...)
 {
+  auto Level = mpLogLevel::Error;
+  if(g_CurrentLogLevel < Level)
+    return;
+
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(LogLevel::Error, ssMessage);
+  DoLog(Level, ssMessage);
 }
 
 void mpLog::SeriousWarning(const char* szFormat, ...)
 {
+  auto Level = mpLogLevel::SeriousWarning;
+  if(g_CurrentLogLevel < Level)
+    return;
+
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(LogLevel::SeriousWarning, ssMessage);
+  DoLog(Level, ssMessage);
 }
 
 void mpLog::Warning(const char* szFormat, ...)
 {
+  auto Level = mpLogLevel::Warning;
+  if(g_CurrentLogLevel < Level)
+    return;
+
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(LogLevel::Warning, ssMessage);
+  DoLog(Level, ssMessage);
 }
 
 void mpLog::Success(const char* szFormat, ...)
 {
+  auto Level = mpLogLevel::Success;
+  if(g_CurrentLogLevel < Level)
+    return;
+
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(LogLevel::Success, ssMessage);
+  DoLog(Level, ssMessage);
 }
 
 void mpLog::Info(const char* szFormat, ...)
 {
+  auto Level = mpLogLevel::Info;
+  if(g_CurrentLogLevel < Level)
+    return;
+
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(LogLevel::Info, ssMessage);
+  DoLog(Level, ssMessage);
 }
 
 void mpLog::Dev(const char* szFormat, ...)
 {
+  auto Level = mpLogLevel::Dev;
+  if(g_CurrentLogLevel < Level)
+    return;
+
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(LogLevel::Dev, ssMessage);
+  DoLog(Level, ssMessage);
 }
 
 void mpLog::Debug(const char* szFormat, ...)
 {
+  auto Level = mpLogLevel::Debug;
+  if(g_CurrentLogLevel < Level)
+    return;
+
   std::stringstream ssMessage;
   FORMAT_MESSAGE(ssMessage, szFormat);
-  DoLog(LogLevel::Debug, ssMessage);
+  DoLog(Level, ssMessage);
+}
+
+void mpLog::SetLogLevel(mpLogLevel Level)
+{
+  g_CurrentLogLevel = Level;
+}
+
+mpLogLevel mpLog::GetLogLevel()
+{
+  return g_CurrentLogLevel;
 }
 
 #undef FORMAT_MESSAGE
