@@ -1,9 +1,34 @@
 #include "Matrix/PCH.h"
 #include "mpWrapper/Utilities/Console.h"
 #include "mpWrapper/Types/Matrix.h"
-#include "mpWrapper/Utilities/Math.h"
-#include "mpWrapper/Utilities/Time.h"
+#include "mpWrapper/Utilities.h"
 #include "mpWrapper/Foundation/Startup.h"
+
+static void LogGeneralStats(mpTime CPUTime, mpTime GPUTime)
+{
+  const char* szMessage;
+  mpTime Difference;
+  double fFactor;
+
+  if(CPUTime < GPUTime)
+  {
+    szMessage = "The CPU was faster than the GPU";
+    Difference = GPUTime - CPUTime;
+    fFactor = GPUTime.GetSeconds() / CPUTime.GetSeconds();
+  }
+  else
+  {
+    szMessage = "The GPU was faster than the CPU";
+    Difference = CPUTime - GPUTime;
+    fFactor = CPUTime.GetSeconds() / GPUTime.GetSeconds();
+  }
+
+  mpLog::Info("- CPU Time:  %f seconds", CPUTime.GetSeconds());
+  mpLog::Info("- GPU Time:  %f seconds", GPUTime.GetSeconds());
+  mpLog::Info("- Delta:     %f seconds", Difference.GetSeconds());
+  mpLog::Info("- Factor:    %f", fFactor);
+  mpLog::Info("%s", szMessage);
+}
 
 static void Test1()
 {
@@ -161,15 +186,15 @@ static void Test5(const char* szFileName, const char* szKernelFile)
   decltype(Left * Right) CPUResult(NoInit);
   decltype(Left * Right) GPUResult(NoInit);
 
-  double CPUTime;
-  double GPUTime;
+  mpTime CPUTime;
+  mpTime GPUTime;
 
   {
     MP_LogBlock("CPU");
     mpLog::Info("Calculating...");
     auto Beginning = mpTime::Now();
     CPUResult = std::move(Left * Right);
-    CPUTime = (mpTime::Now() - Beginning).GetSeconds();
+    CPUTime = mpTime::Now() - Beginning;
     mpLog::Success("Finished in %f seconds.", CPUTime);
   }
 
@@ -180,7 +205,7 @@ static void Test5(const char* szFileName, const char* szKernelFile)
     mpLog::Info("Calculating...");
     auto Beginning = mpTime::Now();
     GPUResult = std::move(Left * Right);
-    GPUTime = (mpTime::Now() - Beginning).GetSeconds();
+    GPUTime = mpTime::Now() - Beginning;
     mpLog::Success("Finished in %f seconds.", GPUTime);
   }
 
@@ -204,20 +229,92 @@ static void Test5(const char* szFileName, const char* szKernelFile)
 
     mpLog::Success("The results are equal!");
 
-    if(CPUTime < GPUTime)
     {
-      auto Difference = GPUTime - CPUTime;
-      mpLog::Info("The CPU was faster than the GPU by %.1f times (%f seconds).",
-                  GPUTime / CPUTime,
-                  Difference);
+      MP_LogBlock("Statistics");
+      mpLog::Info("L Matrix:  %ux%u", Left.GetHeight(), Left.GetWidth());
+      mpLog::Info("Operation: Multiplication");
+      LogGeneralStats(CPUTime, GPUTime);
     }
-    else
+  }
+}
+
+template<typename MatrixType>
+static mpTime Test6Helper(MatrixType& lhs, MatrixType& rhs)
+{
+  auto Beginning = mpTime::Now();
+  auto Result = lhs * rhs;
+  return mpTime::Now() - Beginning;
+}
+
+static void Test6(size_t uiHeight, size_t uiWidth, const char* szKernelFile)
+{
+  MP_LogBlock("Test6");
+  mpLog::Info("Create two randomly generated %ux%u matrices and multiply them "
+              "on the CPU and on the GPU using the kernel %s",
+              uiHeight, uiWidth, szKernelFile);
+
+  mpLog::Info("Creating matrices . . .");
+  auto Beginning = mpTime::Now();
+  auto Left  = mpMatrix::Random(uiHeight, uiWidth, { -1.0f, 1.0f });
+  auto Right = mpMatrix::Random(uiHeight, uiWidth, { -1.0f, 1.0f });
+
+  mpLog::Success("Created matrices in %f seconds", (mpTime::Now() - Beginning).GetSeconds());
+
+  const size_t uiIterations = 1;
+  mpTime CPUTime;
+  mpTime GPUTime;
+
+  {
+    MP_LogBlock("CPU");
+    mpLog::Info("Calulcating matrix-matrix product %u times . . .", uiIterations);
+    for(size_t i = 0; i < uiIterations; i++)
     {
-      auto Difference = CPUTime - GPUTime;
-      mpLog::Info("The GPU was faster than the CPU by %.1f times (%f seconds).",
-                  CPUTime / GPUTime,
-                  Difference);
+      mpLog::Info("Iteration #%u", i + 1);
+      CPUTime += Test6Helper(Left, Right);
     }
+    mpLog::Success("Finished in %f seconds => %f seconds per iteration",
+                   CPUTime.GetSeconds(), CPUTime.GetSeconds() / uiIterations);
+  }
+
+  //
+  //////////////////////////////////////////////////////////////////////////
+  {
+    MP_LogBlock("GPU");
+
+    auto Platform = mpPlatform::Get();
+    auto Device = mpDevice::GetGPU(Platform, 0);
+    mpContext Context;
+    mpCommandQueue Commands;
+    mpProgram Program;
+    mpKernel Kernel;
+
+    {
+      MP_LogBlock("Setup");
+      MP_LogLevelForScope(mpLogLevel::None);
+
+      Context.Initialize(Device);
+      Commands.Initialize(Context, Device);
+      MP_Verify(Program.LoadAndBuild(Context, Device, szKernelFile));
+      Kernel.Initialize(Commands, Program, "MultiplyMatrix");
+    }
+
+    MP_GPUScope(Context, Commands, Kernel);
+    mpLog::Info("Calulcating matrix-matrix product %u times . . .", uiIterations);
+    for(size_t i = 0; i < uiIterations; i++)
+    {
+      mpLog::Info("Iteration #%u", i + 1);
+      GPUTime += Test6Helper(Left, Right);
+    }
+    mpLog::Success("Finished in %f seconds => %f seconds per iteration",
+                   GPUTime.GetSeconds(), GPUTime.GetSeconds() / uiIterations);
+  }
+
+  {
+    MP_LogBlock("Statistics");
+    mpLog::Info("- L Matrix:  %ux%u", uiHeight, uiWidth);
+    mpLog::Info("- R Matrix:  %ux%u", uiHeight, uiWidth);
+    mpLog::Info("- Operation: Multiplication");
+    LogGeneralStats(CPUTime, GPUTime);
   }
 }
 
@@ -232,18 +329,29 @@ class Main : public mpApplication
 
   virtual QuitOrContinue Run() final override
   {
-    Test1();
-    Test2();
-    Test3();
-    Test4();
+    //Test1();
+    //Test2();
+    //Test3();
+    //Test4();
     Test5("Data/HugeRandomMatrix.txt", "Kernels/Matrix.cl");
+
+    size_t uiFrom = 256;
+    size_t uiTo = 1024; // Inclusive
+    size_t uiIterations = 0;
+    for (size_t uiDim = uiFrom; uiDim < uiTo + 1; uiDim <<= 1)
+    {
+      ++uiIterations;
+      MP_LogBlock("#%u:", uiIterations);
+      Test6(uiDim, uiDim, "Kernels/Matrix.cl");
+    }
 
     return Quit;
   }
 
   virtual void PostShutdown() final override
   {
-    mpLog::Info("Needed %f seconds in total.", mpTime::Now() - m_Beginning);
+    mpLog::Info("The application ran for %f seconds.",
+                (mpTime::Now() - m_Beginning).GetSeconds());
     printf("\nPress any key to quit . . . ");
     mpUtilities::GetSingleCharacter();
   }

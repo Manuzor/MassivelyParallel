@@ -1,4 +1,6 @@
 #pragma once
+#include "mpWrapper/Utilities/Random.h"
+#include "mpWrapper/Utilities/Range.h"
 
 enum InitAsIdentity { Identity };
 enum InitAsZero { Zero };
@@ -122,9 +124,25 @@ struct mpMatrixTemplate
     size_t uiHeight, uiWidth;
     mpInternal::mpLoadMatrixFromFile(Data, uiHeight, uiWidth, szFileName);
     MP_Assert(Data.size() == uiWidth * uiHeight, "Invalid output");
-    auto Result = mpMatrixTemplate(uiHeight, uiWidth);
+    mpMatrixTemplate Result(uiHeight, uiWidth);
     memcpy(Result.m_Data, Data.data(), Result.GetByteCount());
     return std::move(Result);
+  }
+
+  MP_ForceInline static mpMatrixTemplate Random(size_t uiHeight, size_t uiWidth, mpRange<Type> MinMaxRange)
+  {
+    mpMatrixTemplate Result(uiHeight, uiWidth);
+    mpRandom::mpNumberGenerator Rand;
+
+    for (size_t c = 0; c < uiWidth; ++c)
+    {
+      for(size_t r = 0; r < uiHeight; ++r)
+      {
+        Result(r, c) = Rand.Generate(MinMaxRange);
+      }
+    }
+
+    return Result;
   }
 
 private:

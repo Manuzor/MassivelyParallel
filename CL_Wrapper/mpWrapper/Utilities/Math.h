@@ -6,10 +6,10 @@ struct mpMathType;
 template<>
 struct mpMathType<cl_float>
 {
-  MP_ForceInline static cl_float GetHugepsilon() { return 0.1f; }
-  MP_ForceInline static cl_float GetLargeEpsilon() { return 0.01f; }
-  MP_ForceInline static cl_float GetDefaultEpsilon() { return 0.001f; }
-  MP_ForceInline static cl_float GetSmallEpsilon() { return 0.0001f; }
+  MP_ForceInline static cl_float GetHugepsilon()     { return 1e-1f; }
+  MP_ForceInline static cl_float GetLargeEpsilon()   { return 1e-2f; }
+  MP_ForceInline static cl_float GetDefaultEpsilon() { return 1e-3f; }
+  MP_ForceInline static cl_float GetSmallEpsilon()   { return 1e-4f; }
   template<typename ResultType = cl_float>
   MP_ForceInline static ResultType CalcAbs(cl_float f) { return (ResultType)std::abs(f); }
   template<typename ResultType = cl_float>
@@ -25,10 +25,10 @@ struct mpMathType<cl_float>
 template<>
 struct mpMathType<double>
 {
-  MP_ForceInline static double GetHugepsilon() { return 0.01; }
-  MP_ForceInline static double GetLargeEpsilon() { return 0.001; }
-  MP_ForceInline static double GetDefaultEpsilon() { return 0.0001; }
-  MP_ForceInline static double GetSmallEpsilon() { return 0.00001; }
+  MP_ForceInline static double GetHugepsilon()     { return 1e-2; }
+  MP_ForceInline static double GetLargeEpsilon()   { return 1e-3; }
+  MP_ForceInline static double GetDefaultEpsilon() { return 1e-4; }
+  MP_ForceInline static double GetSmallEpsilon()   { return 1e-5; }
   template<typename ResultType = double>
   MP_ForceInline static ResultType CalcAbs(double f) { return (ResultType)std::abs(f); }
   template<typename ResultType = double>

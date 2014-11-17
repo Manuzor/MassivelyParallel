@@ -54,7 +54,27 @@ namespace mpLog
   MP_WrapperAPI mpLogLevel GetLogLevel();
 }
 
+namespace mpInternal
+{
+  struct mpChangeLogLevelForScope
+  {
+    mpLogLevel m_PreviousLevel;
+    mpChangeLogLevelForScope(mpLogLevel NewLevel) : m_PreviousLevel(mpLog::GetLogLevel())
+    {
+      mpLog::SetLogLevel(NewLevel);
+    }
+
+    ~mpChangeLogLevelForScope()
+    {
+      mpLog::SetLogLevel(m_PreviousLevel);
+    }
+  };
+}
+
 #include "mpWrapper/Common/Implementation/Logging.inl"
 
 #define MP_LogBlock(...) ::mpLog::BlockBegin(__VA_ARGS__);\
         MP_OnScopeExit { ::mpLog::BlockEnd(); }
+
+/// \brief Sets the current log level to the given one and restores the previous one when the scope is left.
+#define MP_LogLevelForScope(...) ::mpInternal::mpChangeLogLevelForScope MP_Concat(_scopedLogLevel_, __LINE__)(__VA_ARGS__)
