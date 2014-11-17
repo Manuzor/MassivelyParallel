@@ -6,10 +6,13 @@ namespace mpLog
   MP_WrapperAPI void BlockBegin(const char* szFormat, ...);
   MP_WrapperAPI void BlockEnd();
 
-  MP_WrapperAPI void Info(const char* szFormat, ...);
-  MP_WrapperAPI void Success(const char* szFormat, ...);
-  MP_WrapperAPI void Warning(const char* szFormat, ...);
   MP_WrapperAPI void Error(const char* szFormat, ...);
+  MP_WrapperAPI void SeriousWarning(const char* szFormat, ...);
+  MP_WrapperAPI void Warning(const char* szFormat, ...);
+  MP_WrapperAPI void Success(const char* szFormat, ...);
+  MP_WrapperAPI void Info(const char* szFormat, ...);
+  MP_WrapperAPI void Dev(const char* szFormat, ...);
+  MP_WrapperAPI void Debug(const char* szFormat, ...);
 }
 
 #define MP_LogBlock(...) ::mpLog::BlockBegin(__VA_ARGS__);\
