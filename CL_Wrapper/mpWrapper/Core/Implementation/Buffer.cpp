@@ -29,6 +29,6 @@ void mpBuffer::ReadInto(size_t uiBufferSize, void* Buffer, const mpCommandQueue&
                                     CL_TRUE,              // Blocking read
                                     0,                    // Read-offset
                                     uiBufferSize, Buffer, // Buffer size and the actual buffer
-                                    0, NULL, NULL);       // Event stuff.
+                                    0, nullptr, nullptr); // Event stuff.
   MP_Verify(status);
 }
