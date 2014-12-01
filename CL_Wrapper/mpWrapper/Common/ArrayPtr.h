@@ -36,6 +36,12 @@ struct mpArrayPtr
     m_Data = nullptr;
     m_uiCount = 0;
   }
+
+  MP_ForceInline Type& operator [](const size_t uiIndex)
+  {
+    MP_Assert(uiIndex < m_uiCount, "Index out of bounds");
+    return m_Data[uiIndex];
+  }
 };
 
 template<typename Type, size_t N>

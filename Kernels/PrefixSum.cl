@@ -1,5 +1,5 @@
 
 kernel void CalculatePrefixSum(global int* in, global int* out)
 {
-  // TODO Implement me.
+  out[get_global_id(0)] = 0;
 }
