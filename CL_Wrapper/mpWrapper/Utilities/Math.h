@@ -68,6 +68,13 @@ namespace mpMath
   MP_ForceInline double Sqrt(double value) { return mpMathType<double>::Sqrt(value); }
 
   template<typename Type>
+  MP_ForceInline Type Ln(Type value) { return std::log(value); }
+  template<typename Type>
+  MP_ForceInline Type Log10(Type value) { return std::log10(value); }
+  template<typename Type>
+  MP_ForceInline Type Log2(Type value) { return std::log2(value); }
+
+  template<typename Type>
   MP_ForceInline bool IsEqual(Type Lhs, Type Rhs, Type Epsilon = mpMathType<Type>::GetSmallEpsilon())
   {
     auto Diff = CalcAbs(Lhs - Rhs);

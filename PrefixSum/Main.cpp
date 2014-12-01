@@ -15,27 +15,29 @@ void CalcPrefixSumParallelizable(mpArrayPtr<Type> in_Data)
 {
   const auto N = in_Data.m_uiCount;
   MP_Assert(mpMath::IsPowerOf2(N), "The data size must be a power of 2.");
-  const auto k = (size_t)mpMath::Sqrt((cl_float)N);
+  const auto k = (size_t)mpMath::Log2((double)N);
 
-  for (size_t d = 0 ; d < k ; ++d)
+  // Up-Sweep Phase
+  //////////////////////////////////////////////////////////////////////////
+  // d means depth in the "binary tree"
+  for (size_t d = 0; d < k; ++d)
   {
-    // This loop can be parallelized
-    for(size_t i = Pow2(d + 1) - 1; i < N; i += Pow2(d + 1))
+    for (size_t i = Pow2(d + 1) - 1; i < N; i += Pow2(d + 1))
     {
-      in_Data[i] = in_Data[i] + in_Data[i - Pow2(d)];
+      in_Data[i] += in_Data[i - Pow2(d)];
     }
   }
 
-  // Down-Sweep
+  // Down-Sweep Phase
+  //////////////////////////////////////////////////////////////////////////
   in_Data[N - 1] = 0;
-  for (mpInt64 d = k - 1; d >= 0; --d)
+  for (size_t d = k; d > 0; --d)
   {
-    // This loop can be parallelized
-    for (size_t i = Pow2(d + 1) - 1; i < N ; i += Pow2(d + 1))
+    for (size_t i = Pow2(d) - 1; i < N; i += Pow2(d))
     {
-      Type tmp = in_Data[i];
-      in_Data[i] += in_Data[i - Pow2(d)];
-      in_Data[i - Pow2(d)] = tmp;
+      auto tmp = in_Data[i];
+      in_Data[i] += in_Data[i - Pow2(d - 1)];
+      in_Data[i - Pow2(d - 1)] = tmp;
     }
   }
 }
