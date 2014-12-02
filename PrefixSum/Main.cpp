@@ -15,14 +15,14 @@ void CalcPrefixSumParallelizable(mpArrayPtr<Type> in_Data)
 {
   const auto N = in_Data.m_uiCount;
   MP_Assert(mpMath::IsPowerOf2(N), "The data size must be a power of 2.");
-  const auto k = (size_t)mpMath::Log2((double)N);
+  const auto k = (cl_int)mpMath::Log2((double)N);
 
   // Up-Sweep Phase
   //////////////////////////////////////////////////////////////////////////
   // d means depth in the "binary tree"
-  for (size_t d = 0; d < k; ++d)
+  for (cl_int d = 0; d < k; ++d)
   {
-    for (size_t i = Pow2(d + 1) - 1; i < N; i += Pow2(d + 1))
+    for (cl_int i = Pow2(d + 1) - 1; i < N; i += Pow2(d + 1))
     {
       in_Data[i] += in_Data[i - Pow2(d)];
     }
@@ -31,9 +31,9 @@ void CalcPrefixSumParallelizable(mpArrayPtr<Type> in_Data)
   // Down-Sweep Phase
   //////////////////////////////////////////////////////////////////////////
   in_Data[N - 1] = 0;
-  for (size_t d = k; d > 0; --d)
+  for (cl_int d = k; d > 0; --d)
   {
-    for (size_t i = Pow2(d) - 1; i < N; i += Pow2(d))
+    for (cl_int i = Pow2(d) - 1; i < N; i += Pow2(d))
     {
       auto tmp = in_Data[i];
       in_Data[i] += in_Data[i - Pow2(d - 1)];
@@ -116,7 +116,7 @@ class Main : public mpApplication
     cl_int inputData[N];
     for (size_t i = 0; i < N; ++i)
     {
-      inputData[i] = 2;
+      inputData[i] = 1;
     }
     mpBuffer inputBuffer;
     inputBuffer.Initialize(Context,
@@ -135,41 +135,48 @@ class Main : public mpApplication
     cl_int outputData_GPU[N];
     for (size_t i = 0; i < N; ++i)
     {
-      outputData_CPU_Naive[i] = inputData[i];
+      outputData_CPU_Naive[i]       = inputData[i];
       outputData_CPU_UpDownSweep[i] = inputData[i];
-      outputData_GPU[i] = inputData[i];
+      outputData_GPU[i]             = inputData[i];
     }
 
-
+    // CPU Calculation
+    //////////////////////////////////////////////////////////////////////////
     {
-      MP_LogBlock("Output Data (CPU, Naive)");
-      CalcPrefixSum(mpMakeArrayPtr(outputData_CPU_Naive));
-      PrintData(mpMakeArrayPtr(outputData_CPU_Naive));
-    }
+      MP_LogBlock("CPU Calculation");
 
+      {
+        MP_LogBlock("Output Data (CPU, Naive)");
+        CalcPrefixSum(mpMakeArrayPtr(outputData_CPU_Naive));
+        PrintData(mpMakeArrayPtr(outputData_CPU_Naive));
+      }
 
-    {
-      MP_LogBlock("Output Data (CPU, Up/Downsweep)");
-      CalcPrefixSumParallelizable(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
-      PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+      {
+        MP_LogBlock("Output Data (CPU, Up/Downsweep)");
+        CalcPrefixSumParallelizable(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+        PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+      }
     }
 
     // GPU Calculation
     //////////////////////////////////////////////////////////////////////////
-    mpBuffer outputBuffer;
-    outputBuffer.Initialize(Context,
-                           mpBufferFlags::ReadOnly,
-                           mpMakeArrayPtr(outputData_GPU));
+    if(false){
+      MP_LogBlock("GPU Calculation");
+      mpBuffer outputBuffer;
+      outputBuffer.Initialize(Context,
+                              mpBufferFlags::ReadOnly,
+                              mpMakeArrayPtr(outputData_GPU));
 
-    Kernel.PushArg(inputBuffer);
-    Kernel.PushArg(outputBuffer);
-    Kernel.Execute(N);
+      Kernel.PushArg(outputBuffer);
+      Kernel.PushArg((size_t)mpMath::Log2((double)N));
+      Kernel.Execute(N);
 
-    outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU), Queue);
+      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU), Queue);
 
-    {
-      MP_LogBlock("Output Data (GPU)");
-      PrintData(mpMakeArrayPtr(outputData_GPU));
+      {
+        MP_LogBlock("Output Data (GPU)");
+        PrintData(mpMakeArrayPtr(outputData_GPU));
+      }
     }
 
     return Quit;

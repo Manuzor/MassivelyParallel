@@ -38,7 +38,7 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
       auto buffer = new char[bufferSize];
       MP_OnScopeExit{ delete[] buffer; };
       MP_Verify(clGetProgramBuildInfo(m_Id, Device.m_Id, CL_PROGRAM_BUILD_LOG, bufferSize, buffer, NULL));
-      mpLog::Error("---------- Build Failed ----------\n%s", buffer);
+      mpLog::Error("---------- Build Failed ----------\n%s%s", szFileName, buffer);
       return buildResult;
     }
 

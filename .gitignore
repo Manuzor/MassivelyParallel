@@ -9,3 +9,5 @@ ipch/
 *.user
 
 Data/HugeRandomMatrix.txt
+ThirdParty/
+
