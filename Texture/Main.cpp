@@ -4,31 +4,8 @@
 #include "mpWrapper/Utilities.h"
 #include "mpWrapper/Foundation/Startup.h"
 
-class Object
-{
-public:
-  sf::String m_sTextureName;
-  sf::Texture m_Texture;
-  sf::Sprite m_Sprite;
-
-  void Initialize(const char* szTextureName)
-  {
-    m_sTextureName = szTextureName;
-    if(!m_Texture.loadFromFile(m_sTextureName))
-    {
-      mpLog::Error("Failed to load texture: %s", szTextureName);
-      MP_ReportError("Failed to load texture.");
-    }
-    m_Texture.setSmooth(true);
-
-    m_Sprite.setTexture(m_Texture);
-  }
-
-  void Draw(sf::RenderWindow& Window)
-  {
-    Window.draw(m_Sprite);
-  }
-};
+#include "Drawing.h"
+#include "Object.h"
 
 class Main : public mpApplication
 {
@@ -73,7 +50,7 @@ class Main : public mpApplication
 
     m_Window.clear();
 
-    m_Original.Draw(m_Window);
+    Draw(m_Original).On(m_Window);
 
     m_Window.display();
 

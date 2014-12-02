@@ -187,6 +187,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Drawing.h" />
+    <ClInclude Include="Object.h" />
     <ClInclude Include="PCH.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
