@@ -3,16 +3,16 @@
 template<typename Type>
 struct DrawInstruction
 {
-  const Type* m_pDrawable;
-  bool m_bDrawn = false;
+  const Type* m_pSurface;
+  bool m_bCalled = false;
 
-  MP_ForceInline ~DrawInstruction() { MP_Assert(m_bDrawn, ""); }
+  MP_ForceInline ~DrawInstruction() { MP_Assert(m_bCalled, "You forgot to call Draw!"); }
 
-  template<typename SurfaceType>
-  MP_ForceInline void On(SurfaceType& surface) { m_bDrawn = true; surface.draw(*m_pDrawable); }
+  template<typename DrawableType>
+  MP_ForceInline void Draw(DrawableType& drawable) { m_bCalled = true; m_pSurface->draw(drawable); }
 
 private:
-  MP_ForceInline explicit DrawInstruction(const Type& object) : m_pDrawable(&object) {}
+  MP_ForceInline explicit DrawInstruction(const Type& object) : m_pSurface(&object) {}
 
   template<typename T>
   friend DrawInstruction<T> MakeDrawInstruction(const T& object);

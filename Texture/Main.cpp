@@ -6,12 +6,14 @@
 
 #include "Drawing.h"
 #include "Object.h"
+#include "UserInput.h"
 
 class Main : public mpApplication
 {
   sf::RenderWindow  m_Window;
   Object m_Original;
   mpTime m_Beginning;
+  UserInput m_UserInput;
 
   virtual void PreStartup() final override
   {
@@ -21,7 +23,30 @@ class Main : public mpApplication
   virtual void PostStartup() final override
   {
     m_Window.create(sf::VideoMode(800, 600), "Texture Tiling");
-    m_Original.Initialize("Data/balls.png");
+    Initialize(m_Original, "Data/balls.png");
+    Initialize(m_UserInput, "Data/Fonts/arial.ttf");
+    TextOf(m_UserInput) += "Choose Texture: ";
+  }
+
+  void HandleText(sf::Event::TextEvent& text)
+  {
+    if(text.unicode < 32)
+      return;
+
+    Append(m_UserInput, text.unicode);
+  }
+
+  void HandleInput(sf::Event::KeyEvent& key)
+  {
+    switch(key.code)
+    {
+    case sf::Keyboard::Escape:
+      m_Window.close();
+      break;
+    case sf::Keyboard::Return:
+      Clear(m_UserInput);
+      break;
+    }
   }
 
   void HandleEvent(sf::Event& event)
@@ -29,8 +54,11 @@ class Main : public mpApplication
     switch(event.type)
     {
     case sf::Event::KeyReleased:
-      if (event.key.code != sf::Keyboard::Escape)
-        break;
+      HandleInput(event.key);
+      break;
+    case sf::Event::TextEntered:
+      HandleText(event.text);
+      break;
     case sf::Event::Closed:
       m_Window.close();
       break;
@@ -42,15 +70,15 @@ class Main : public mpApplication
     if (!m_Window.isOpen())
       return Quit;
 
-    sf::Event event;
-    while(m_Window.pollEvent(event))
+    for(sf::Event event; m_Window.pollEvent(event);)
     {
       HandleEvent(event);
     }
 
     m_Window.clear();
 
-    Draw(m_Original).On(m_Window);
+    Draw(m_Window, m_Original);
+    Draw(m_Window, m_UserInput);
 
     m_Window.display();
 
