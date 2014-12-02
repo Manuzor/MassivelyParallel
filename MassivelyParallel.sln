@@ -32,6 +32,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PrefixSum", "PrefixSum\Pref
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Texture", "Texture\Texture.vcxproj", "{F56A7988-B9A3-45C0-9384-76538033BD26}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C8DF60E3-9EE5-4F45-BC91-22A951B6DB5F} = {C8DF60E3-9EE5-4F45-BC91-22A951B6DB5F}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
