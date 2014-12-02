@@ -107,7 +107,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>sfml-graphics.lib;sfml-system.lib;sfml-window.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-graphics$(SFML_LIB_SUFFIX).lib;sfml-system$(SFML_LIB_SUFFIX).lib;sfml-window$(SFML_LIB_SUFFIX).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>python3 "$(SolutionDir)\CopyDependencies.py" "$(OutDir) " "$(Configuration)" "$(PlatformArchitecture)" "$(ProjectDir)\Dependencies.py"</Command>
@@ -125,7 +125,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>sfml-graphics.lib;sfml-system.lib;sfml-window.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-graphics$(SFML_LIB_SUFFIX).lib;sfml-system$(SFML_LIB_SUFFIX).lib;sfml-window$(SFML_LIB_SUFFIX).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>python3 "$(SolutionDir)\CopyDependencies.py" "$(OutDir) " "$(Configuration)" "$(PlatformArchitecture)" "$(ProjectDir)\Dependencies.py"</Command>
@@ -146,7 +146,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>sfml-graphics.lib;sfml-system.lib;sfml-window.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-graphics$(SFML_LIB_SUFFIX).lib;sfml-system$(SFML_LIB_SUFFIX).lib;sfml-window$(SFML_LIB_SUFFIX).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>python3 "$(SolutionDir)\CopyDependencies.py" "$(OutDir) " "$(Configuration)" "$(PlatformArchitecture)" "$(ProjectDir)\Dependencies.py"</Command>
@@ -167,7 +167,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>sfml-graphics.lib;sfml-system.lib;sfml-window.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-graphics$(SFML_LIB_SUFFIX).lib;sfml-system$(SFML_LIB_SUFFIX).lib;sfml-window$(SFML_LIB_SUFFIX).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>python3 "$(SolutionDir)\CopyDependencies.py" "$(OutDir) " "$(Configuration)" "$(PlatformArchitecture)" "$(ProjectDir)\Dependencies.py"</Command>

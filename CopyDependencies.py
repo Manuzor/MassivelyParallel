@@ -64,7 +64,7 @@ def CopyIfNewer(Source, Target):
         Print("Copying: {0} -> {1}".format(Source, Target))
         copy2(Source, Target)
     except FileNotFoundError as err:
-        Print("File could not be found: {0}".format(Source))
+        Print("Warning: File could not be found: {0}".format(Source))
 
 def Main():
     print("Copying dependencies...".format(args.OutDir))
