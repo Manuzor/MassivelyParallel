@@ -110,8 +110,7 @@
       <AdditionalDependencies>sfml-graphics.lib;sfml-system.lib;sfml-window.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>python3 "$(SolutionDir)\CopyDependencies.py" "$(OutDir) " "$(Configuration)" "$(PlatformArchitecture)" "$(ProjectDir)\Dependencies.py"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -129,8 +128,7 @@
       <AdditionalDependencies>sfml-graphics.lib;sfml-system.lib;sfml-window.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>python3 "$(SolutionDir)\CopyDependencies.py" "$(OutDir) " "$(Configuration)" "$(PlatformArchitecture)" "$(ProjectDir)\Dependencies.py"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -151,8 +149,7 @@
       <AdditionalDependencies>sfml-graphics.lib;sfml-system.lib;sfml-window.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>python3 "$(SolutionDir)\CopyDependencies.py" "$(OutDir) " "$(Configuration)" "$(PlatformArchitecture)" "$(ProjectDir)\Dependencies.py"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -173,8 +170,7 @@
       <AdditionalDependencies>sfml-graphics.lib;sfml-system.lib;sfml-window.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>python3 "$(SolutionDir)\CopyDependencies.py" "$(OutDir) " "$(Configuration)" "$(PlatformArchitecture)" "$(ProjectDir)\Dependencies.py"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

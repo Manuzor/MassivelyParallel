@@ -13,7 +13,7 @@ using std::swap;
 template<typename Type>
 void CalcPrefixSumParallelizable(mpArrayPtr<Type> in_Data)
 {
-  const auto N = in_Data.m_uiCount;
+  const auto N = (cl_int)in_Data.m_uiCount;
   MP_Assert(mpMath::IsPowerOf2(N), "The data size must be a power of 2.");
   const auto k = (cl_int)mpMath::Log2((double)N);
 

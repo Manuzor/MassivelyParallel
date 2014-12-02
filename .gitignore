@@ -7,6 +7,7 @@ ipch/
 *.opensdf
 *.suo
 *.user
+__pycache__
 
 Data/HugeRandomMatrix.txt
 ThirdParty/
