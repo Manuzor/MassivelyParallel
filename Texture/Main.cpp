@@ -11,9 +11,13 @@
 class Main : public mpApplication
 {
   sf::RenderWindow  m_Window;
+  mpTime            m_Beginning;
+  UserInput         m_UserInput;
+
   Object m_Original;
-  mpTime m_Beginning;
-  UserInput m_UserInput;
+  Object m_Result;
+  //Object m_YBlend;
+  //Object m_CompleteBlend;
 
   virtual void PreStartup() final override
   {
@@ -23,9 +27,20 @@ class Main : public mpApplication
   virtual void PostStartup() final override
   {
     m_Window.create(sf::VideoMode(800, 600), "Texture Tiling");
+
+    const float fTop = 20.0f;
+    const float fLeft = fTop;
+    const float fMargin = 20.0f;
+
     Initialize(m_Original, "Data/balls.png");
+    TransformOf(m_Original).setPosition(fLeft, fTop);
+    auto sizeOfOriginal = TextureOf(m_Original).getSize();
+
+    Initialize(m_Result, sizeOfOriginal);
+    TransformOf(m_Result).setPosition(fLeft + (float)sizeOfOriginal.x + fMargin, fTop);
+
     Initialize(m_UserInput, "Data/Fonts/arial.ttf");
-    TextOf(m_UserInput) += "Choose Texture: ";
+    //TextOf(m_UserInput) += "Choose Texture: ";
   }
 
   void HandleText(sf::Event::TextEvent& text)
@@ -75,9 +90,16 @@ class Main : public mpApplication
       HandleEvent(event);
     }
 
+    // General Update section
+    //////////////////////////////////////////////////////////////////////////
+
+    // Rendering
+    //////////////////////////////////////////////////////////////////////////
+
     m_Window.clear();
 
     Draw(m_Window, m_Original);
+    Draw(m_Window, m_Result);
     Draw(m_Window, m_UserInput);
 
     m_Window.display();
