@@ -17,6 +17,14 @@ class Main : public mpApplication
   Object m_Original;
   Object m_Result;
 
+  /// CL Stuff
+  mpPlatform m_Platform = mpPlatform::Get();
+  mpDevice m_Device = mpDevice::GetGPU(m_Platform, 0);
+  mpContext m_Context;
+  mpCommandQueue m_Queue;
+  mpProgram m_Program;
+  mpKernel m_Kernel_BlendX;
+
   virtual void PreStartup() final override
   {
     m_Beginning = mpTime::Now();
@@ -24,7 +32,14 @@ class Main : public mpApplication
 
   virtual void PostStartup() final override
   {
-    m_Window.create({ 800, 600 }, "Texture Tiling");
+    // Initialize CL stuff
+    m_Context.Initialize(m_Device);
+    m_Queue.Initialize(m_Context, m_Device);
+    MP_Verify(m_Program.LoadAndBuild(m_Context, m_Device, "Kernels/Blend.cl"));
+    m_Kernel_BlendX.Initialize(m_Queue, m_Program, "BlendX");
+
+    // Initialize rendering stuff
+    m_Window.create({ 800, 600 }, "Texture Blending");
 
     const float fTop = 20.0f;
     const float fLeft = fTop;
@@ -35,10 +50,40 @@ class Main : public mpApplication
     auto sizeOfOriginal = TextureOf(m_Original).getSize();
 
     Initialize(m_Result, sizeOfOriginal);
+    TextureOf(m_Result).update(TextureOf(m_Original).copyToImage());
     TransformOf(m_Result).setPosition(fLeft + (float)sizeOfOriginal.x + fMargin, fTop);
 
     Initialize(m_UserInput, "Data/Fonts/arial.ttf");
     //TextOf(m_UserInput) += "Choose Texture: ";
+  }
+
+  void InvokeKernel()
+  {
+    auto size = TextureOf(m_Result).getSize();
+    auto totalSize = size.x * size.y;
+    size_t GlobalWorkSize[2] = { size.x, size.y };
+
+    auto Image = TextureOf(m_Result).copyToImage();
+    auto Pixels = (cl_uchar4*)Image.getPixelsPtr();
+    auto PixelsPtr = mpMakeArrayPtr(Pixels, totalSize);
+
+    // Set width and height parameters
+    m_Kernel_BlendX.PushArg((cl_int)size.x);
+    m_Kernel_BlendX.PushArg((cl_int)size.y);
+
+    // Copy pixels to GPU
+    mpBuffer Buffer;
+    Buffer.Initialize(m_Context, mpBufferFlags::ReadWrite, PixelsPtr);
+    m_Kernel_BlendX.PushArg(Buffer);
+
+    // Run Kernel
+    m_Kernel_BlendX.Execute(GlobalWorkSize);
+
+    // Copy results from GPU back to CPU
+    Buffer.ReadInto(PixelsPtr, m_Queue);
+
+    // Update the contents of the result texture with the output of the Kernel
+    TextureOf(m_Result).update(Image);
   }
 
   void HandleText(sf::Event::TextEvent& text)
@@ -58,6 +103,7 @@ class Main : public mpApplication
       break;
     case sf::Keyboard::Return:
       Clear(m_UserInput);
+      InvokeKernel();
       break;
     }
   }
@@ -94,7 +140,7 @@ class Main : public mpApplication
     // Rendering
     //////////////////////////////////////////////////////////////////////////
 
-    m_Window.clear();
+    m_Window.clear({ 100, 149, 237, 255 });
 
     Draw(m_Window, m_Original);
     Draw(m_Window, m_Result);

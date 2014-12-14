@@ -2,6 +2,7 @@
 #include "mpWrapper/Core/Kernel.h"
 #include "mpWrapper/Core/Buffer.h"
 #include "mpWrapper/Core/CommandQueue.h"
+#include "mpWrapper/Utilities/String.h"
 
 void mpKernel::Initialize(const mpCommandQueue& Queue, const mpProgram& Program, const char* szKernelName)
 {
@@ -12,6 +13,7 @@ void mpKernel::Initialize(const mpCommandQueue& Queue, const mpProgram& Program,
   cl_int status;
   m_Id = clCreateKernel(Program.m_Id, szKernelName, &status);
   MP_Verify(status);
+  mpString::mpCreateCopy(m_szName, szKernelName, strlen(szKernelName));
 }
 
 void mpKernel::Release()
@@ -22,6 +24,7 @@ void mpKernel::Release()
   MP_Verify(clReleaseKernel(m_Id));
   m_Id = nullptr;
   m_pQueue = nullptr;
+  mpString::mpDestroyCopy(m_szName);
 }
 
 void mpKernel::PushArg(const mpBuffer& Buffer)
@@ -35,10 +38,10 @@ void mpKernel::Execute(mpArrayPtr<size_t> GlobalWorkSize, mpArrayPtr<size_t> Loc
   MP_Assert(LocalWorkSize.m_Data == nullptr || GlobalWorkSize.m_uiCount == LocalWorkSize.m_uiCount,
             "Global and Local work sizes must have the same dimensions");
 
+  mpLog::Debug("Running Kernel: %s", m_szName);
   MP_Verify(clEnqueueNDRangeKernel(m_pQueue->m_Id, m_Id,                        // Command queue and kernel
                                    (cl_uint)GlobalWorkSize.m_uiCount, nullptr,  // Work dimensions and global offset
                                    GlobalWorkSize.m_Data, LocalWorkSize.m_Data, // Global and local work sizes
                                    0, nullptr, nullptr));                       // Event stuff
-  mpLog::Debug("Kernel is running.");
   m_uiCurrentArgCount = 0;
 }

@@ -6,12 +6,14 @@ class mpCommandQueue;
 
 class MP_WrapperAPI mpKernel
 {
+  const char* m_szName = nullptr;
+
 public:
   using Id = cl_kernel;
 
   Id m_Id = nullptr;
-public:
 
+public:
   ~mpKernel() { Release(); }
 
   void Initialize(const mpCommandQueue& Queue, const mpProgram& Program, const char* szKernelName);
@@ -42,6 +44,8 @@ public:
   }
 
   void Execute(mpArrayPtr<size_t> GlobalWorkSize, mpArrayPtr<size_t> LocalWorkSize = nullptr);
+
+  const char* GetName() const { return m_szName; }
 
 private:
   cl_uint m_uiCurrentArgCount = 0;

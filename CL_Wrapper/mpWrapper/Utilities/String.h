@@ -38,4 +38,22 @@ namespace mpString
   {
     return mpInternal::ParseHelper<Type>::Parse(Begin, End);
   }
+
+  template<typename CharType>
+  void mpCreateCopy(const CharType*& out_szDestination, const CharType* szSource, size_t uiCount)
+  {
+    MP_Assert(out_szDestination == nullptr, "This function allocates new memory for out_szDestination.");
+    auto szBuffer = new CharType[uiCount + 1];
+    szBuffer[uiCount] = '\0';
+    memcpy(szBuffer, szSource, uiCount);
+    out_szDestination = szBuffer;
+  }
+
+
+  template<typename CharType>
+  void mpDestroyCopy(const CharType*& szString)
+  {
+    delete[] szString;
+    szString = nullptr;
+  }
 }
