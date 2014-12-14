@@ -16,8 +16,6 @@ class Main : public mpApplication
 
   Object m_Original;
   Object m_Result;
-  //Object m_YBlend;
-  //Object m_CompleteBlend;
 
   virtual void PreStartup() final override
   {
@@ -26,7 +24,7 @@ class Main : public mpApplication
 
   virtual void PostStartup() final override
   {
-    m_Window.create(sf::VideoMode(800, 600), "Texture Tiling");
+    m_Window.create({ 800, 600 }, "Texture Tiling");
 
     const float fTop = 20.0f;
     const float fLeft = fTop;

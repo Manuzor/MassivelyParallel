@@ -189,6 +189,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Drawing.h" />
+    <ClInclude Include="Event.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="PCH.h" />
     <ClInclude Include="UserInput.h" />
