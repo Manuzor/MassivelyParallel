@@ -4,6 +4,7 @@
 static void PostInit(Object& object)
 {
   TextureOf(object).setSmooth(true);
+  TextureOf(object).setRepeated(true);
   SpriteOf(object).setTexture(TextureOf(object));
 }
 

@@ -38,49 +38,73 @@ class Main : public mpApplication
     MP_Verify(m_Program.LoadAndBuild(m_Context, m_Device, "Kernels/Blend.cl"));
     m_Kernel_BlendX.Initialize(m_Queue, m_Program, "BlendX");
 
-    // Initialize rendering stuff
-    m_Window.create({ 800, 600 }, "Texture Blending");
-
-    const float fTop = 20.0f;
-    const float fLeft = fTop;
     const float fMargin = 20.0f;
+    const mpUInt32 uiNumTilingsX = 2;
+    const mpUInt32 uiNumTilingsY = 2;
 
-    Initialize(m_Original, "Data/balls.png");
-    TransformOf(m_Original).setPosition(fLeft, fTop);
-    auto sizeOfOriginal = TextureOf(m_Original).getSize();
+    sf::IntRect spriteRect;
+    sf::Vector2u textureDimensions;
 
-    Initialize(m_Result, sizeOfOriginal);
-    TextureOf(m_Result).update(TextureOf(m_Original).copyToImage());
-    TransformOf(m_Result).setPosition(fLeft + (float)sizeOfOriginal.x + fMargin, fTop);
+    // Init original image.
+    {
+      Initialize(m_Original, "Data/balls.png");
+      TransformOf(m_Original).setPosition(fMargin, fMargin);
+
+      // Tiling
+      spriteRect = SpriteOf(m_Original).getTextureRect();
+      spriteRect.width *= uiNumTilingsX; spriteRect.height *= uiNumTilingsY;
+
+      textureDimensions = TextureOf(m_Original).getSize();
+
+      SpriteOf(m_Original).setTextureRect(spriteRect);
+    }
+
+    // Init result image.
+    {
+      Initialize(m_Result, textureDimensions);
+      TextureOf(m_Result).update(TextureOf(m_Original).copyToImage());
+      TransformOf(m_Result).setPosition(fMargin + uiNumTilingsX * (float)textureDimensions.x + fMargin, fMargin);
+      SpriteOf(m_Result).setTextureRect(spriteRect); // Tiling
+    }
 
     Initialize(m_UserInput, "Data/Fonts/arial.ttf");
     //TextOf(m_UserInput) += "Choose Texture: ";
+
+    // Initialize (create) window
+    auto objectWidth = textureDimensions.x * uiNumTilingsX;
+    auto objectHeight = textureDimensions.y * uiNumTilingsY;
+    auto videoMode = sf::VideoMode{
+      mpUInt32((fMargin + objectWidth) * 2 + fMargin),
+      mpUInt32((fMargin + objectHeight)    + fMargin)
+    };
+    m_Window.create(videoMode, "Texture Blending");
   }
 
-  void InvokeKernel()
+  void InvokeKernel(mpKernel& Kernel)
   {
-    auto size = TextureOf(m_Result).getSize();
-    auto totalSize = size.x * size.y;
-    size_t GlobalWorkSize[2] = { size.x, size.y };
+    auto vPixelDimensions = TextureOf(m_Result).getSize();
+    auto uiPixelCount = vPixelDimensions.x * vPixelDimensions.y;
+    size_t GlobalWorkSize[2] = { vPixelDimensions.x, vPixelDimensions.y };
 
     auto Image = TextureOf(m_Result).copyToImage();
     auto Pixels = (cl_uchar4*)Image.getPixelsPtr();
-    auto PixelsPtr = mpMakeArrayPtr(Pixels, totalSize);
-
-    // Set width and height parameters
-    m_Kernel_BlendX.PushArg((cl_int)size.x);
-    m_Kernel_BlendX.PushArg((cl_int)size.y);
+    auto PixelsPtr = mpMakeArrayPtr(Pixels, uiPixelCount);
 
     // Copy pixels to GPU
-    mpBuffer Buffer;
-    Buffer.Initialize(m_Context, mpBufferFlags::ReadWrite, PixelsPtr);
-    m_Kernel_BlendX.PushArg(Buffer);
+    mpBuffer InputBuffer;
+    InputBuffer.Initialize(m_Context, mpBufferFlags::ReadOnly, PixelsPtr);
 
-    // Run Kernel
-    m_Kernel_BlendX.Execute(GlobalWorkSize);
+    // Create buffer on GPU for the result
+    mpBuffer ResultBuffer;
+    ResultBuffer.Initialize(m_Context, mpBufferFlags::WriteOnly, uiPixelCount * sizeof(cl_uchar4));
+
+    // Run Kernel with input and result buffer as arguments
+    Kernel.PushArg(InputBuffer);
+    Kernel.PushArg(ResultBuffer);
+    Kernel.Execute(GlobalWorkSize);
 
     // Copy results from GPU back to CPU
-    Buffer.ReadInto(PixelsPtr, m_Queue);
+    ResultBuffer.ReadInto(PixelsPtr, m_Queue);
 
     // Update the contents of the result texture with the output of the Kernel
     TextureOf(m_Result).update(Image);
@@ -94,6 +118,11 @@ class Main : public mpApplication
     Append(m_UserInput, text.unicode);
   }
 
+  void ResetResultImage()
+  {
+    TextureOf(m_Result).update(TextureOf(m_Original).copyToImage());
+  }
+
   void HandleInput(sf::Event::KeyEvent& key)
   {
     switch(key.code)
@@ -103,7 +132,18 @@ class Main : public mpApplication
       break;
     case sf::Keyboard::Return:
       Clear(m_UserInput);
-      InvokeKernel();
+      break;
+    case sf::Keyboard::R:
+      ResetResultImage();
+      break;
+    case sf::Keyboard::Num1:
+      InvokeKernel(m_Kernel_BlendX);
+      break;
+    case sf::Keyboard::Num2:
+      //InvokeKernel(m_Kernel_BlendY);
+      break;
+    case sf::Keyboard::Num3:
+      //InvokeKernel(m_Kernel_Blend);
       break;
     }
   }
@@ -140,11 +180,11 @@ class Main : public mpApplication
     // Rendering
     //////////////////////////////////////////////////////////////////////////
 
-    m_Window.clear({ 100, 149, 237, 255 });
+    m_Window.clear({ 100, 149, 237, 255 }); // Cornflower Blue (X11)
 
     Draw(m_Window, m_Original);
     Draw(m_Window, m_Result);
-    Draw(m_Window, m_UserInput);
+    //Draw(m_Window, m_UserInput);
 
     m_Window.display();
 
