@@ -39,8 +39,10 @@ class Main : public mpApplication
     m_Kernel_BlendX.Initialize(m_Queue, m_Program, "BlendX");
 
     const float fMargin = 20.0f;
-    const mpUInt32 uiNumTilingsX = 2;
-    const mpUInt32 uiNumTilingsY = 2;
+    const sf::Vector2u numTilings{ 4,
+                                   4 };
+    const sf::Vector2f textureScale { 0.5f,
+                                      0.5f };
 
     sf::IntRect spriteRect;
     sf::Vector2u textureDimensions;
@@ -49,35 +51,42 @@ class Main : public mpApplication
     {
       Initialize(m_Original, "Data/balls.png");
       TransformOf(m_Original).setPosition(fMargin, fMargin);
+    }
 
-      // Tiling
-      spriteRect = SpriteOf(m_Original).getTextureRect();
-      spriteRect.width *= uiNumTilingsX; spriteRect.height *= uiNumTilingsY;
+    textureDimensions = TextureOf(m_Original).getSize();
 
-      textureDimensions = TextureOf(m_Original).getSize();
+    sf::Vector2f objectDimensions = { textureDimensions.x * numTilings.x * textureScale.x,
+                                      textureDimensions.y * numTilings.y * textureScale.y };
 
+    // Tiling
+    spriteRect = SpriteOf(m_Original).getTextureRect();
+    spriteRect.width  *= numTilings.x;
+    spriteRect.height *= numTilings.y;
+
+    // post-init of original image
+    {
       SpriteOf(m_Original).setTextureRect(spriteRect);
+      SpriteOf(m_Original).setScale(textureScale);
     }
 
     // Init result image.
     {
       Initialize(m_Result, textureDimensions);
       TextureOf(m_Result).update(TextureOf(m_Original).copyToImage());
-      TransformOf(m_Result).setPosition(fMargin + uiNumTilingsX * (float)textureDimensions.x + fMargin, fMargin);
+      TransformOf(m_Result).setPosition(fMargin + objectDimensions.x + fMargin, fMargin);
       SpriteOf(m_Result).setTextureRect(spriteRect); // Tiling
+      SpriteOf(m_Result).setScale(textureScale);
     }
 
     Initialize(m_UserInput, "Data/Fonts/arial.ttf");
     //TextOf(m_UserInput) += "Choose Texture: ";
 
     // Initialize (create) window
-    auto objectWidth = textureDimensions.x * uiNumTilingsX;
-    auto objectHeight = textureDimensions.y * uiNumTilingsY;
-    auto videoMode = sf::VideoMode{
-      mpUInt32((fMargin + objectWidth) * 2 + fMargin),
-      mpUInt32((fMargin + objectHeight)    + fMargin)
+    sf::VideoMode video {
+      mpUInt32((fMargin + objectDimensions.x) * 2 + fMargin),
+      mpUInt32((fMargin + objectDimensions.y)     + fMargin)
     };
-    m_Window.create(videoMode, "Texture Blending");
+    m_Window.create(video, "Texture Blending");
   }
 
   void InvokeKernel(mpKernel& Kernel)
