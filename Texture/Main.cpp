@@ -19,12 +19,12 @@ struct ProfileScope
 
   ~ProfileScope()
   {
-    mpLog::Dev("Profiling data of '%s': %f seconds", m_Name.c_str(), (mpTime::Now() - m_Begin).GetSeconds());
+    mpLog::Dev("'%s' finished in %f seconds", m_Name.c_str(), (mpTime::Now() - m_Begin).GetSeconds());
   }
 };
 
-#define Profile(...) ::ProfileScope MP_Concat(_profile_, __LINE__)(__VA_ARGS__)
-#define ProfiledLogBlock(...) MP_LogBlock(__VA_ARGS__); ::ProfileScope MP_Concat(_profile_, __LINE__)(__VA_ARGS__)
+#define Profile(szName) ::ProfileScope MP_Concat(_profile_, __LINE__)(szName)
+#define ProfiledLogBlock(szName) MP_LogBlock("Profiling: %s", szName); ::ProfileScope MP_Concat(_profile_, __LINE__)(szName)
 
 class Main : public mpApplication
 {
@@ -111,7 +111,7 @@ class Main : public mpApplication
 
   void InvokeKernel(mpKernel& Kernel)
   {
-    ProfiledLogBlock("Kernel Invocation");
+    MP_LogBlock("Kernel Invocation (%s)", Kernel.GetName());
 
     auto vPixelDimensions = TextureOf(m_Result).getSize();
     auto uiPixelCount = vPixelDimensions.x * vPixelDimensions.y;
@@ -121,43 +121,51 @@ class Main : public mpApplication
     auto Pixels = (cl_uchar4*)Image.getPixelsPtr();
     auto PixelsPtr = mpMakeArrayPtr(Pixels, uiPixelCount);
 
-    // Copy pixels to GPU
     mpBuffer InputBuffer;
-    {
-      Profile("Initializing InputBuffer");
-      InputBuffer.Initialize(m_Context, mpBufferFlags::ReadOnly, PixelsPtr);
-    }
-
-    // Create buffer on GPU for the result
     mpBuffer ResultBuffer;
-    {
-      Profile("Initializing ResultBuffer");
-      ResultBuffer.Initialize(m_Context, mpBufferFlags::WriteOnly, uiPixelCount * sizeof(cl_uchar4));
-    }
-
-    // Run Kernel with input and result buffer as arguments
-    {
-      Profile("Pushing Kernel Args");
-      Kernel.PushArg(InputBuffer);
-      Kernel.PushArg(ResultBuffer);
-    }
-
-    ProfiledLogBlock("Before Kernel Execution");
-    {
-      Profile("Executing Kernel");
-      Kernel.Execute(GlobalWorkSize);
-    }
-
-    mpLog::Info("Waiting for Kernel result...");
 
     {
-      Profile("Get Results from GPU");
-      // Copy results from GPU back to CPU
-      ResultBuffer.ReadInto(PixelsPtr, m_Queue);
+      ProfiledLogBlock("Initialization");
+
+      // Copy pixels to GPU
+      {
+        Profile("Initializing InputBuffer");
+        InputBuffer.Initialize(m_Context, mpBufferFlags::ReadOnly, PixelsPtr);
+      }
+
+      // Create buffer on GPU for the result
+      {
+        Profile("Initializing ResultBuffer");
+        ResultBuffer.Initialize(m_Context, mpBufferFlags::WriteOnly, uiPixelCount * sizeof(cl_uchar4));
+      }
+
+      // Run Kernel with input and result buffer as arguments
+      {
+        Profile("Pushing Kernel Args");
+        Kernel.PushArg(InputBuffer);
+        Kernel.PushArg(ResultBuffer);
+      }
     }
 
-    // Update the contents of the result texture with the output of the Kernel
-    TextureOf(m_Result).update(Image);
+    {
+      ProfiledLogBlock("Execution");
+      {
+        Profile("Executing Kernel");
+        Kernel.Execute(GlobalWorkSize);
+      }
+
+      {
+        Profile("Retrieve Results");
+        // Copy results from GPU back to CPU
+        ResultBuffer.ReadInto(PixelsPtr, m_Queue);
+      }
+    }
+
+    {
+      ProfiledLogBlock("Texture Update");
+      // Update the contents of the result texture with the output of the Kernel
+      TextureOf(m_Result).update(Image);
+    }
   }
 
   void HandleText(sf::Event::TextEvent& text)
