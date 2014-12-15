@@ -24,6 +24,7 @@ class Main : public mpApplication
   mpCommandQueue m_Queue;
   mpProgram m_Program;
   mpKernel m_Kernel_BlendX;
+  mpKernel m_Kernel_BlendY;
 
   virtual void PreStartup() final override
   {
@@ -37,19 +38,20 @@ class Main : public mpApplication
     m_Queue.Initialize(m_Context, m_Device);
     MP_Verify(m_Program.LoadAndBuild(m_Context, m_Device, "Kernels/Blend.cl"));
     m_Kernel_BlendX.Initialize(m_Queue, m_Program, "BlendX");
+    m_Kernel_BlendY.Initialize(m_Queue, m_Program, "BlendY");
 
     const float fMargin = 20.0f;
-    const sf::Vector2u numTilings{ 4,
-                                   4 };
-    const sf::Vector2f textureScale { 0.5f,
-                                      0.5f };
+    const sf::Vector2u numTilings{ 3,
+                                   2 };
+    const sf::Vector2f textureScale { 1.0f,
+                                      1.0f };
 
     sf::IntRect spriteRect;
     sf::Vector2u textureDimensions;
 
     // Init original image.
     {
-      Initialize(m_Original, "Data/balls.png");
+      Initialize(m_Original, "Data/fern.png");
       TransformOf(m_Original).setPosition(fMargin, fMargin);
     }
 
@@ -149,7 +151,7 @@ class Main : public mpApplication
       InvokeKernel(m_Kernel_BlendX);
       break;
     case sf::Keyboard::Num2:
-      //InvokeKernel(m_Kernel_BlendY);
+      InvokeKernel(m_Kernel_BlendY);
       break;
     case sf::Keyboard::Num3:
       //InvokeKernel(m_Kernel_Blend);

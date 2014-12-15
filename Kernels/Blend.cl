@@ -1,32 +1,42 @@
+// These Kernels assume that matrix data (textures, etc) are given in row-major format.
 
-// More readable shortcuts for thread meta data on compute device
-#define GX  get_global_id(0)   ///< Global x-coordinate
-#define GY  get_global_id(1)   ///< Global y-coordinate
-#define GW get_global_size(0)  ///< Global work size in x-direction
-#define GH get_global_size(1)  ///< Global work size in y-direction
-#define GN  (GW * GH)          ///< Total global work size
+// More readable shortcuts for thread meta data on compute device (not unit)
+#define GX get_global_id(0)   ///< Global x-coordinate
+#define GY get_global_id(1)   ///< Global y-coordinate
+#define GW get_global_size(0) ///< Global work size in x-direction
+#define GH get_global_size(1) ///< Global work size in y-direction
+#define GN (GW * GH)          ///< Total global work size
 
-// More readable shortcuts for thread meta data on compute unit
-#define LX  get_local_id(0)   ///< x-coordinate local to compute unit
-#define LY  get_local_id(1)   ///< y-coordinate local to compute unit
-#define LNX get_local_size(0) ///< Local work size in x-direction on compute unit
-#define LNY get_local_size(1) ///< Local work size in y-direction on compute unit
-#define LN  (LNX * LNY)       ///< Total local work size on compute unit
+#define ShiftFactorX 2
+#define ShiftFactorY 2
 
-#define Pow2(x) (1 << (x)) ///< Calculates 2^x
+/// Calculates the index into the one-dimensional row-major data array using the given x and y coordinates
+int CalcIndex(int x, int y) { return y * GW + x; }
 
-#define IndexRM (GY * GW + GX) ///< Row Major
-#define IndexCM (GY * GW + GX) ///< Column Major
-#define Index IndexRM
+//#define Index (GY * GW + GX)
+#define Index CalcIndex(GX, GY)
 
-/// Helper function that scales a \a pixel (uchar3) with a \a factor (float).
-uchar3 scalePixel(uchar3 pixel, float factor)
-{
-  return convert_uchar3(convert_float3(pixel) * factor);
-}
+#define HorizontallyShiftedIndex CalcIndex((GX + GW/2) % GW, GY)
+#define VerticallyShiftedIndex   CalcIndex(GX, (GY + GH/2) % GH)
+
+#define AlphaX clamp(fabs(fma(-2.0f * GX, 1.0f / (GW-1.0f), 1.0f)), 0.0f, 1.0f)
+#define AlphaY clamp(fabs(fma(-2.0f * GY, 1.0f / (GH-1.0f), 1.0f)), 0.0f, 1.0f)
+
+// Kernels
+//////////////////////////////////////////////////////////////////////////
 
 kernel void BlendX(global uchar4* in, global uchar4* out)
 {
-  out[Index].xyz = scalePixel(in[Index].xyz, 0.9f);
-  out[Index].w = in[Index].w;
+  const float4 pixelA = convert_float4(in[Index                   ]) * (1.0f - AlphaX);
+  const float4 pixelB = convert_float4(in[HorizontallyShiftedIndex]) * AlphaX;
+
+  out[Index] = convert_uchar4(pixelA + pixelB);
+}
+
+kernel void BlendY(global uchar4* in, global uchar4* out)
+{
+  const float4 pixelA = convert_float4(in[Index                 ]) * (1.0f - AlphaY);
+  const float4 pixelB = convert_float4(in[VerticallyShiftedIndex]) * AlphaY;
+
+  out[Index] = convert_uchar4(pixelA + pixelB);
 }
