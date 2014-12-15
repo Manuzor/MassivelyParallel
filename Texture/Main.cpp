@@ -8,6 +8,24 @@
 #include "Object.h"
 #include "UserInput.h"
 
+struct ProfileScope
+{
+  mpTime m_Begin;
+  std::string m_Name;
+
+  ProfileScope(const char* szName) : m_Begin(mpTime::Now()), m_Name(szName)
+  {
+  }
+
+  ~ProfileScope()
+  {
+    mpLog::Dev("Profiling data of '%s': %f seconds", m_Name.c_str(), (mpTime::Now() - m_Begin).GetSeconds());
+  }
+};
+
+#define Profile(...) ::ProfileScope MP_Concat(_profile_, __LINE__)(__VA_ARGS__)
+#define ProfiledLogBlock(...) MP_LogBlock(__VA_ARGS__); ::ProfileScope MP_Concat(_profile_, __LINE__)(__VA_ARGS__)
+
 class Main : public mpApplication
 {
   sf::RenderWindow  m_Window;
@@ -93,6 +111,8 @@ class Main : public mpApplication
 
   void InvokeKernel(mpKernel& Kernel)
   {
+    ProfiledLogBlock("Kernel Invocation");
+
     auto vPixelDimensions = TextureOf(m_Result).getSize();
     auto uiPixelCount = vPixelDimensions.x * vPixelDimensions.y;
     size_t GlobalWorkSize[2] = { vPixelDimensions.x, vPixelDimensions.y };
@@ -103,19 +123,38 @@ class Main : public mpApplication
 
     // Copy pixels to GPU
     mpBuffer InputBuffer;
-    InputBuffer.Initialize(m_Context, mpBufferFlags::ReadOnly, PixelsPtr);
+    {
+      Profile("Initializing InputBuffer");
+      InputBuffer.Initialize(m_Context, mpBufferFlags::ReadOnly, PixelsPtr);
+    }
 
     // Create buffer on GPU for the result
     mpBuffer ResultBuffer;
-    ResultBuffer.Initialize(m_Context, mpBufferFlags::WriteOnly, uiPixelCount * sizeof(cl_uchar4));
+    {
+      Profile("Initializing ResultBuffer");
+      ResultBuffer.Initialize(m_Context, mpBufferFlags::WriteOnly, uiPixelCount * sizeof(cl_uchar4));
+    }
 
     // Run Kernel with input and result buffer as arguments
-    Kernel.PushArg(InputBuffer);
-    Kernel.PushArg(ResultBuffer);
-    Kernel.Execute(GlobalWorkSize);
+    {
+      Profile("Pushing Kernel Args");
+      Kernel.PushArg(InputBuffer);
+      Kernel.PushArg(ResultBuffer);
+    }
 
-    // Copy results from GPU back to CPU
-    ResultBuffer.ReadInto(PixelsPtr, m_Queue);
+    ProfiledLogBlock("Before Kernel Execution");
+    {
+      Profile("Executing Kernel");
+      Kernel.Execute(GlobalWorkSize);
+    }
+
+    mpLog::Info("Waiting for Kernel result...");
+
+    {
+      Profile("Get Results from GPU");
+      // Copy results from GPU back to CPU
+      ResultBuffer.ReadInto(PixelsPtr, m_Queue);
+    }
 
     // Update the contents of the result texture with the output of the Kernel
     TextureOf(m_Result).update(Image);
