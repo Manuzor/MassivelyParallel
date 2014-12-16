@@ -45,6 +45,7 @@ class Main : public mpApplication
   mpProgram m_Program;
   mpKernel m_Kernel_BlendX;
   mpKernel m_Kernel_BlendY;
+  mpKernel m_Kernel_Blend;
 
   /// The maximum dimensions of the render window.
   const sf::VideoMode m_MaxVideo = sf::VideoMode::getDesktopMode();
@@ -72,6 +73,7 @@ class Main : public mpApplication
     MP_Verify(m_Program.LoadAndBuild(m_Context, m_Device, "Kernels/Blend.cl"));
     m_Kernel_BlendX.Initialize(m_Queue, m_Program, "BlendX");
     m_Kernel_BlendY.Initialize(m_Queue, m_Program, "BlendY");
+    m_Kernel_Blend .Initialize(m_Queue, m_Program, "Blend");
 
     auto& texture = TextureOf(m_Original);
 
@@ -124,7 +126,7 @@ class Main : public mpApplication
 
     SFML_Verify(FontOf(m_Info).loadFromFile("Data/Fonts/arial.ttf"));
     TextOf(m_Info).setCharacterSize((const unsigned int)(m_fMargin * 0.8f));
-    Append(m_Info, "Keys: 1 - BlendX | 2 - BlendY | 3 - <Not Implemented> | R - Reset Result");
+    Append(m_Info, "Keys: 1 - BlendX | 2 - BlendY | 3 - Blend (all) | R - Reset Result");
 
     // Initialize (create) window
     sf::VideoMode video (
@@ -234,7 +236,7 @@ class Main : public mpApplication
       InvokeKernel(m_Kernel_BlendY);
       break;
     case sf::Keyboard::Num3:
-      //InvokeKernel(m_Kernel_Blend);
+      InvokeKernel(m_Kernel_Blend);
       break;
     case sf::Keyboard::Add:
     {

@@ -10,6 +10,9 @@
 #define ShiftFactorX 2
 #define ShiftFactorY 2
 
+/// Is either fma or mad
+#define FMA_or_MAD fma
+
 /// Calculates the index into the one-dimensional row-major data array using the given x and y coordinates
 int CalcIndex(int x, int y) { return y * GW + x; }
 
@@ -18,25 +21,87 @@ int CalcIndex(int x, int y) { return y * GW + x; }
 
 #define HorizontallyShiftedIndex CalcIndex((GX + GW/2) % GW, GY)
 #define VerticallyShiftedIndex   CalcIndex(GX, (GY + GH/2) % GH)
+#define HVShiftedIndex CalcIndex((GX + GW/2) % GW, (GY + GH/2) % GH)
 
-#define AlphaX clamp(fabs(fma(-2.0f * GX, 1.0f / (GW-1.0f), 1.0f)), 0.0f, 1.0f)
-#define AlphaY clamp(fabs(fma(-2.0f * GY, 1.0f / (GH-1.0f), 1.0f)), 0.0f, 1.0f)
+#define AlphaX clamp(fabs(FMA_or_MAD(-2.0f * GX, 1.0f / (GW-1.0f), 1.0f)), 0.0f, 1.0f)
+#define AlphaY clamp(fabs(FMA_or_MAD(-2.0f * GY, 1.0f / (GH-1.0f), 1.0f)), 0.0f, 1.0f)
+
+// Helpers
+//////////////////////////////////////////////////////////////////////////
+
+float4 CalcPixelBlend(float4 originalPixel, float4 shiftedPixel, float alpha)
+{
+  // Apply 1-alpha to the original pixel
+  // Apply alpha to the shifted pixel
+  // return the sum of the results
+  return originalPixel * (1.0f - alpha)
+       + shiftedPixel  * alpha;
+}
+
+#define f4(in) convert_float4(in)
+#define uc4(in) convert_uchar4(in)
 
 // Kernels
 //////////////////////////////////////////////////////////////////////////
 
 kernel void BlendX(global uchar4* in, global uchar4* out)
 {
-  const float4 pixelA = convert_float4(in[Index                   ]) * (1.0f - AlphaX);
-  const float4 pixelB = convert_float4(in[HorizontallyShiftedIndex]) * AlphaX;
-
-  out[Index] = convert_uchar4(pixelA + pixelB);
+  const float4 originalPixel = convert_float4(in[Index]);
+  const float4 shiftedPixel  = convert_float4(in[HorizontallyShiftedIndex]);
+  const float4 resultPixel   = CalcPixelBlend(originalPixel, shiftedPixel, AlphaX);
+  out[Index] = convert_uchar4(resultPixel);
 }
 
 kernel void BlendY(global uchar4* in, global uchar4* out)
 {
-  const float4 pixelA = convert_float4(in[Index                 ]) * (1.0f - AlphaY);
-  const float4 pixelB = convert_float4(in[VerticallyShiftedIndex]) * AlphaY;
+  const float4 originalPixel = convert_float4(in[Index]);
+  const float4 shiftedPixel  = convert_float4(in[VerticallyShiftedIndex]);
+  const float4 resultPixel   = CalcPixelBlend(originalPixel, shiftedPixel, AlphaY);
+  out[Index] = convert_uchar4(resultPixel);
+}
 
-  out[Index] = convert_uchar4(pixelA + pixelB);
+/// \brief Blends the texture given in \a in in x- and y-directions and writes the result to \a out.
+///
+/// Nomenclature:
+/// O - original pixel
+/// H - horizontally shifted pixel
+/// V - vertically shifted pixel
+/// D - diagonally shited pixel, i.e. HV or VH
+/// <-- - x-alpha mask
+/// ^
+/// | - y-alpha mask
+/// ====================
+/// Visualize the algorithm like this:
+/// --- Step 1 and 2 ---
+///   O <-- H   Blend the original pixel with the horizontally shifted pixel using the x-alpha mask
+///   . . . .
+///   . . . .
+///   V <-- D   Blend the vertically shifted pixel with the diagonally shifted pixel using the x-alpha mask
+/// --- Step 3 ---------
+///   O'. . H
+///   ^ . . .   Blend the blended original pixel with the blended vertically shifted pixel using the y-alpha mask
+///   | . . .
+///   V'. . D
+/// --- Result ---------
+///   O'' . H
+///   . . . .
+///   . . . .
+///   V'. . D
+/// O'' represents the desired result.
+kernel void Blend(global uchar4* in, global uchar4* out)
+{
+  const float4 pixelO = f4(in[Index]);
+  const float4 pixelH = f4(in[HorizontallyShiftedIndex]);
+  const float4 pixelV = f4(in[VerticallyShiftedIndex]);
+  const float4 pixelD = f4(in[HVShiftedIndex]);
+
+  // Naming pattern:
+  // pixel(source)(target)(blend mask)
+  // e.g.: pixelOHX => blended original pixel with horizontally shifted pixel using the x-alpha mask
+
+  const float4 pixelOHX = CalcPixelBlend(pixelO, pixelH, AlphaX);
+  const float4 pixelVDX = CalcPixelBlend(pixelV, pixelD, AlphaX);
+  const float4 resultPixel = CalcPixelBlend(pixelOHX, pixelVDX, AlphaY);
+
+  out[Index] = uc4(resultPixel);
 }
