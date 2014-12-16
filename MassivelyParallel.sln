@@ -12,7 +12,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kernels", "Kernels", "{920C5213-1FAB-4DCC-A152-262639400769}"
 	ProjectSection(SolutionItems) = preProject
 		Kernels\Add1.cl = Kernels\Add1.cl
-		..\..\..\..\lib64\cygwin\home\manu\projects\MassivelyParallel\Kernels\Blend.cl = ..\..\..\..\lib64\cygwin\home\manu\projects\MassivelyParallel\Kernels\Blend.cl
+		Kernels\Blend.cl = Kernels\Blend.cl
 		Kernels\Matrix.cl = Kernels\Matrix.cl
 		Kernels\MatrixSingleThreaded.cl = Kernels\MatrixSingleThreaded.cl
 		Kernels\PrefixSum.cl = Kernels\PrefixSum.cl

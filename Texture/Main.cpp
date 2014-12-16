@@ -4,7 +4,6 @@
 #include "mpWrapper/Utilities.h"
 #include "mpWrapper/Foundation/Startup.h"
 
-#include "Drawing.h"
 #include "Object.h"
 #include "UserInput.h"
 
