@@ -124,7 +124,7 @@ class Main : public mpApplication
 
     SFML_Verify(FontOf(m_Info).loadFromFile("Data/Fonts/arial.ttf"));
     TextOf(m_Info).setCharacterSize((const unsigned int)(m_fMargin * 0.8f));
-    Append(m_Info, "Keys: 1 - BlendX | 2 - BlendY | 3 - <Not Implemented> | R - Reset result image");
+    Append(m_Info, "Keys: 1 - BlendX | 2 - BlendY | 3 - <Not Implemented> | R - Reset Result");
 
     // Initialize (create) window
     sf::VideoMode video (
