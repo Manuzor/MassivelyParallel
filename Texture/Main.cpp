@@ -25,18 +25,6 @@ struct ProfileScope
 #define Profile(szName) ::ProfileScope MP_Concat(_profile_, __LINE__)(szName)
 #define ProfiledLogBlock(szName) MP_LogBlock("Profiling: %s", szName); ::ProfileScope MP_Concat(_profile_, __LINE__)(szName)
 
-void Clear(sf::Texture& texture, sf::Image& image)
-{
-  texture.update(image);
-}
-
-void Clear(sf::Texture& texture, sf::Color color = sf::Color::White)
-{
-  sf::Image img;
-  img.create(texture.getSize().x, texture.getSize().y, color);
-  Clear(texture, img);
-}
-
 class Main : public mpApplication
 {
   sf::RenderWindow  m_Window;
