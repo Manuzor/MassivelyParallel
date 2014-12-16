@@ -191,7 +191,7 @@
     <ClInclude Include="Event.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="PCH.h" />
-    <ClInclude Include="UserInput.h" />
+    <ClInclude Include="ScreenText.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
