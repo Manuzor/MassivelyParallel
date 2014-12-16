@@ -1,37 +1,19 @@
 #include "PCH.h"
 #include "Object.h"
 
-static void PostInit(Object& object)
+Object::Object()
 {
-  TextureOf(object).setSmooth(true);
-  TextureOf(object).setRepeated(true);
-  SpriteOf(object).setTexture(TextureOf(object));
+  m_Texture.setSmooth(true);
+  m_Texture.setRepeated(true);
+  m_Sprite.setTexture(m_Texture);
 }
 
-void Initialize(Object& object, mpUInt32 uiWidth, mpUInt32 uiHeight)
+void Initialize(Object& object)
 {
-  object.m_sTextureName = "<Generated>";
-  if(!object.m_Texture.create(uiWidth, uiHeight))
-  {
-    mpLog::Error("Failed to generate texture with dimensions %ux%u", uiWidth, uiHeight);
-    MP_ReportError("Failed to generate texture.");
-  }
+  if(object.m_bInitialized)
+    return;
 
-  sf::Image img;
-  img.create(uiWidth, uiHeight, sf::Color::White);
-  object.m_Texture.update(img);
+  /// \todo do some initialization here.
 
-  PostInit(object);
-}
-
-void Initialize(Object& object, const char* szTextureName)
-{
-  object.m_sTextureName = szTextureName;
-  if(!object.m_Texture.loadFromFile(object.m_sTextureName))
-  {
-    mpLog::Error("Failed to load texture: %s", szTextureName);
-    MP_ReportError("Failed to load texture.");
-  }
-
-  PostInit(object);
+  object.m_bInitialized = true;
 }

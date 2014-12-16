@@ -26,6 +26,18 @@ struct ProfileScope
 #define Profile(szName) ::ProfileScope MP_Concat(_profile_, __LINE__)(szName)
 #define ProfiledLogBlock(szName) MP_LogBlock("Profiling: %s", szName); ::ProfileScope MP_Concat(_profile_, __LINE__)(szName)
 
+void Clear(sf::Texture& texture, sf::Image& image)
+{
+  texture.update(image);
+}
+
+void Clear(sf::Texture& texture, sf::Color color = sf::Color::White)
+{
+  sf::Image img;
+  img.create(texture.getSize().x, texture.getSize().y, color);
+  Clear(texture, img);
+}
+
 class Main : public mpApplication
 {
   sf::RenderWindow  m_Window;
@@ -44,6 +56,19 @@ class Main : public mpApplication
   mpKernel m_Kernel_BlendX;
   mpKernel m_Kernel_BlendY;
 
+  /// The maximum dimensions of the render window.
+  const sf::VideoMode m_MaxVideo = sf::VideoMode::getDesktopMode();
+
+  /// The minimum distance between objects and the window borders;
+  const float m_fMargin = 20.0f;
+
+  /// The number of objects in x and y directions
+  const sf::Vector2u m_NumObjects = { 2,   // horizontally
+                                      1 }; // vertically
+
+  const sf::Vector2u m_NumTilings = { 3,   // horizontally
+                                      2 }; // vertically
+
   virtual void PreStartup() final override
   {
     m_Beginning = mpTime::Now();
@@ -58,54 +83,55 @@ class Main : public mpApplication
     m_Kernel_BlendX.Initialize(m_Queue, m_Program, "BlendX");
     m_Kernel_BlendY.Initialize(m_Queue, m_Program, "BlendY");
 
-    const float fMargin = 20.0f;
-    const sf::Vector2u numTilings{ 3,
-                                   2 };
-    const sf::Vector2f textureScale { 1.0f,
-                                      1.0f };
-
-    sf::IntRect spriteRect;
-    sf::Vector2u textureDimensions;
+    auto& texture = TextureOf(m_Original);
+    auto& sprite = SpriteOf(m_Original);
 
     // Init original image.
     {
-      Initialize(m_Original, "Data/fern.png");
-      TransformOf(m_Original).setPosition(fMargin, fMargin);
+      SFML_Verify(texture.loadFromFile("Data/fern.png"));
     }
 
-    textureDimensions = TextureOf(m_Original).getSize();
+    sf::IntRect spriteRect = { 0, 0, (int)texture.getSize().x, (int)texture.getSize().y };
+    {
+      spriteRect.width  *= m_NumTilings.x;
+      spriteRect.height *= m_NumTilings.y;
+    }
 
-    sf::Vector2f objectDimensions = { textureDimensions.x * numTilings.x * textureScale.x,
-                                      textureDimensions.y * numTilings.y * textureScale.y };
+    sf::Vector2u textureDimensions = texture.getSize();
 
-    // Tiling
-    spriteRect = SpriteOf(m_Original).getTextureRect();
-    spriteRect.width  *= numTilings.x;
-    spriteRect.height *= numTilings.y;
+    // Create the result texture by copying the original
+    {
+      SFML_Verify(TextureOf(m_Result).loadFromImage(texture.copyToImage()));
+    }
 
-    // post-init of original image
+    // Set up tiling
     {
       SpriteOf(m_Original).setTextureRect(spriteRect);
-      SpriteOf(m_Original).setScale(textureScale);
+      SpriteOf(m_Result).setTextureRect(spriteRect); // Tiling
     }
 
-    // Init result image.
+    // Set positions
     {
-      Initialize(m_Result, textureDimensions);
-      TextureOf(m_Result).update(TextureOf(m_Original).copyToImage());
-      TransformOf(m_Result).setPosition(fMargin + objectDimensions.x + fMargin, fMargin);
-      SpriteOf(m_Result).setTextureRect(spriteRect); // Tiling
-      SpriteOf(m_Result).setScale(textureScale);
+      TransformOf(m_Original).setPosition(m_fMargin, m_fMargin);
+      TransformOf(m_Result).setPosition(
+        m_fMargin + texture.getSize().x * m_NumTilings.x + m_fMargin, m_fMargin);
     }
+
+    Initialize(m_Original);
+    Initialize(m_Result);
 
     Initialize(m_UserInput, "Data/Fonts/arial.ttf");
     //TextOf(m_UserInput) += "Choose Texture: ";
 
     // Initialize (create) window
-    sf::VideoMode video {
-      mpUInt32((fMargin + objectDimensions.x) * 2 + fMargin),
-      mpUInt32((fMargin + objectDimensions.y)     + fMargin)
-    };
+    sf::VideoMode video (
+      mpUInt32((m_fMargin + spriteRect.width) * m_NumObjects.x + m_fMargin),
+      mpUInt32((m_fMargin + spriteRect.height) * m_NumObjects.y + m_fMargin)
+    );
+
+    video.width  = mpMath::Clamp(video.width,  0U, m_MaxVideo.width);
+    video.height = mpMath::Clamp(video.height, 0U, m_MaxVideo.height);
+
     m_Window.create(video, "Texture Blending");
   }
 
@@ -202,6 +228,20 @@ class Main : public mpApplication
       break;
     case sf::Keyboard::Num3:
       //InvokeKernel(m_Kernel_Blend);
+      break;
+    case sf::Keyboard::Add:
+    {
+      auto view = m_Window.getView();
+      view.zoom(1.0f);
+      m_Window.setView(view);
+    }
+    break;
+    case sf::Keyboard::Subtract:
+    {
+      auto view = m_Window.getView();
+      view.zoom(-1.0f);
+      m_Window.setView(view);
+    }
       break;
     }
   }

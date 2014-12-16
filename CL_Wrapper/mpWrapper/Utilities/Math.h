@@ -6,7 +6,7 @@ struct mpMathType;
 template<>
 struct mpMathType<cl_float>
 {
-  MP_ForceInline static cl_float GetHugepsilon()     { return 1e-1f; }
+  MP_ForceInline static cl_float GetHugeEpsilon()    { return 1e-1f; }
   MP_ForceInline static cl_float GetLargeEpsilon()   { return 1e-2f; }
   MP_ForceInline static cl_float GetDefaultEpsilon() { return 1e-3f; }
   MP_ForceInline static cl_float GetSmallEpsilon()   { return 1e-4f; }
@@ -26,7 +26,7 @@ struct mpMathType<cl_float>
 template<>
 struct mpMathType<double>
 {
-  MP_ForceInline static double GetHugepsilon()     { return 1e-2; }
+  MP_ForceInline static double GetHugeEpsilon()    { return 1e-2; }
   MP_ForceInline static double GetLargeEpsilon()   { return 1e-3; }
   MP_ForceInline static double GetDefaultEpsilon() { return 1e-4; }
   MP_ForceInline static double GetSmallEpsilon()   { return 1e-5; }
@@ -46,44 +46,54 @@ struct mpMathType<double>
 namespace mpMath
 {
   /// \brief Convenient function that delegates the actual work to the mpMathType implementation.
-  template<typename Type>
-  MP_ForceInline Type CalcAbs(Type n) { return mpMathType<Type>::CalcAbs(n); }
+  template<typename Type> MP_ForceInline
+  Type CalcAbs(Type n) { return mpMathType<Type>::CalcAbs(n); }
 
-  template<typename Type>
-  MP_ForceInline Type CalcRound(Type n) { return mpMathType<Type>::CalcRound(n); }
+  template<typename Type> MP_ForceInline
+  Type CalcRound(Type n) { return mpMathType<Type>::CalcRound(n); }
 
-  template<typename Type>
-  MP_ForceInline Type CalcFloor(Type n) { return mpMathType<Type>::CalcFloor(n); }
+  template<typename Type> MP_ForceInline
+  Type CalcFloor(Type n) { return mpMathType<Type>::CalcFloor(n); }
 
-  template<typename Type>
-  MP_ForceInline Type CalcCeil(Type n) { return mpMathType<Type>::CalcCeil(n); }
+  template<typename Type> MP_ForceInline
+  Type CalcCeil(Type n) { return mpMathType<Type>::CalcCeil(n); }
 
-  template<typename Type>
-  MP_ForceInline Type Max(Type lhs, Type rhs) { return mpMathType<Type>::Max(lhs, rhs); }
+  template<typename Type> MP_ForceInline
+  Type Max(Type lhs, Type rhs) { return mpMathType<Type>::Max(lhs, rhs); }
 
-  template<typename Type>
-  MP_ForceInline Type Min(Type lhs, Type rhs) { return mpMathType<Type>::Min(lhs, rhs); }
+  template<typename Type> MP_ForceInline
+  Type Min(Type lhs, Type rhs) { return mpMathType<Type>::Min(lhs, rhs); }
 
-  MP_ForceInline cl_float Sqrt(cl_float value) { return mpMathType<cl_float>::Sqrt(value); }
-  MP_ForceInline double Sqrt(double value) { return mpMathType<double>::Sqrt(value); }
+  MP_ForceInline
+  cl_float Sqrt(cl_float value) { return mpMathType<cl_float>::Sqrt(value); }
+  MP_ForceInline
+  double Sqrt(double value) { return mpMathType<double>::Sqrt(value); }
 
-  template<typename Type>
-  MP_ForceInline Type Ln(Type value) { return std::log(value); }
-  template<typename Type>
-  MP_ForceInline Type Log10(Type value) { return std::log10(value); }
-  template<typename Type>
-  MP_ForceInline Type Log2(Type value) { return std::log2(value); }
+  template<typename Type> MP_ForceInline
+  Type Ln(Type value) { return std::log(value); }
+  template<typename Type> MP_ForceInline
+  Type Log10(Type value) { return std::log10(value); }
+  template<typename Type> MP_ForceInline
+  Type Log2(Type value) { return std::log2(value); }
 
-  template<typename Type>
-  MP_ForceInline bool IsEqual(Type Lhs, Type Rhs, Type Epsilon = mpMathType<Type>::GetSmallEpsilon())
+  template<typename Type> MP_ForceInline
+  Type Clamp(Type value, Type min, Type max)
+  {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+  }
+
+  template<typename Type> MP_ForceInline
+  bool IsEqual(Type Lhs, Type Rhs, Type Epsilon = mpMathType<Type>::GetSmallEpsilon())
   {
     auto Diff = CalcAbs(Lhs - Rhs);
     return Diff < Epsilon * Max(CalcAbs(Lhs), CalcAbs(Rhs));
   }
 
   /// Should only be used for signed integers.
-  template<typename Type>
-  MP_ForceInline bool IsPowerOf2(const Type x)
+  template<typename Type> MP_ForceInline
+  bool IsPowerOf2(const Type x)
   {
     if (x < 1)
       return false;
@@ -91,4 +101,3 @@ namespace mpMath
     return ((x & (x - 1)) == 0);
   }
 }
-
