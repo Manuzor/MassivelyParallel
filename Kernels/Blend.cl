@@ -14,14 +14,14 @@
 #define FMA_or_MAD fma
 
 /// Calculates the index into the one-dimensional row-major data array using the given x and y coordinates
-int CalcIndex(int x, int y) { return y * GW + x; }
+#define CalcIndex(x, y) ((y) * GW + (x))
 
 //#define Index (GY * GW + GX)
 #define Index CalcIndex(GX, GY)
 
 #define HorizontallyShiftedIndex CalcIndex((GX + GW/2) % GW, GY)
 #define VerticallyShiftedIndex   CalcIndex(GX, (GY + GH/2) % GH)
-#define HVShiftedIndex CalcIndex((GX + GW/2) % GW, (GY + GH/2) % GH)
+#define HVShiftedIndex           CalcIndex((GX + GW/2) % GW, (GY + GH/2) % GH)
 
 #define AlphaX clamp(fabs(FMA_or_MAD(-2.0f * GX, 1.0f / (GW-1.0f), 1.0f)), 0.0f, 1.0f)
 #define AlphaY clamp(fabs(FMA_or_MAD(-2.0f * GY, 1.0f / (GH-1.0f), 1.0f)), 0.0f, 1.0f)
@@ -37,9 +37,6 @@ float4 CalcPixelBlend(float4 originalPixel, float4 shiftedPixel, float alpha)
   return originalPixel * (1.0f - alpha)
        + shiftedPixel  * alpha;
 }
-
-#define f4(in) convert_float4(in)
-#define uc4(in) convert_uchar4(in)
 
 // Kernels
 //////////////////////////////////////////////////////////////////////////
@@ -90,10 +87,10 @@ kernel void BlendY(global uchar4* in, global uchar4* out)
 /// O'' represents the desired result.
 kernel void Blend(global uchar4* in, global uchar4* out)
 {
-  const float4 pixelO = f4(in[Index]);
-  const float4 pixelH = f4(in[HorizontallyShiftedIndex]);
-  const float4 pixelV = f4(in[VerticallyShiftedIndex]);
-  const float4 pixelD = f4(in[HVShiftedIndex]);
+  const float4 pixelO = convert_float4(in[Index]);
+  const float4 pixelH = convert_float4(in[HorizontallyShiftedIndex]);
+  const float4 pixelV = convert_float4(in[VerticallyShiftedIndex]);
+  const float4 pixelD = convert_float4(in[HVShiftedIndex]);
 
   // Naming pattern:
   // pixel(source)(target)(blend mask)
@@ -103,5 +100,5 @@ kernel void Blend(global uchar4* in, global uchar4* out)
   const float4 pixelVDX = CalcPixelBlend(pixelV, pixelD, AlphaX);
   const float4 resultPixel = CalcPixelBlend(pixelOHX, pixelVDX, AlphaY);
 
-  out[Index] = uc4(resultPixel);
+  out[Index] = convert_uchar4(resultPixel);
 }
