@@ -7,3 +7,4 @@
 #include "mpWrapper/Utilities/Time.h"
 #include "mpWrapper/Utilities/Random.h"
 #include "mpWrapper/Utilities/Range.h"
+#include "mpWrapper/Utilities/Profiling.h"

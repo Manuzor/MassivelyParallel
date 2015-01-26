@@ -10,51 +10,72 @@ using std::swap;
 // Calculates 2^x
 #define Pow2(x) (1 << (x))
 
-template<typename Type>
-void CalcPrefixSumParallelizable(mpArrayPtr<Type> in_Data)
+namespace UpDown
 {
-  const auto N = (cl_int)in_Data.m_uiCount;
-  MP_Assert(mpMath::IsPowerOf2(N), "The data size must be a power of 2.");
-  const auto k = (cl_int)mpMath::Log2((double)N);
-
-  // Up-Sweep Phase
-  //////////////////////////////////////////////////////////////////////////
-  // d means depth in the "binary tree"
-  for (cl_int d = 0; d < k; ++d)
+  template<typename Type>
+  void UpSweep(mpArrayPtr<Type> in_Data)
   {
-    for (cl_int i = Pow2(d + 1) - 1; i < N; i += Pow2(d + 1))
+    const auto N = (cl_int)in_Data.m_uiCount;
+    const auto k = (cl_int)mpMath::Log2((double)N);
+
+    // d means depth in the "binary tree"
+    for(cl_int d = 0; d < k; ++d)
     {
-      in_Data[i] += in_Data[i - Pow2(d)];
+      for(cl_int i = Pow2(d + 1) - 1; i < N; i += Pow2(d + 1))
+      {
+        auto other = i - Pow2(d);
+        in_Data[i] += in_Data[other];
+      }
     }
   }
 
-  // Down-Sweep Phase
-  //////////////////////////////////////////////////////////////////////////
-  in_Data[N - 1] = 0;
-  for (cl_int d = k; d > 0; --d)
+  template<typename Type>
+  void DownSweep(mpArrayPtr<Type> in_Data)
   {
-    for (cl_int i = Pow2(d) - 1; i < N; i += Pow2(d))
+    const auto N = (cl_int)in_Data.m_uiCount;
+    const auto k = (cl_int)mpMath::Log2((double)N);
+
+    for(cl_int d = k; d > 0; --d)
     {
-      auto tmp = in_Data[i];
-      in_Data[i] += in_Data[i - Pow2(d - 1)];
-      in_Data[i - Pow2(d - 1)] = tmp;
+      for(cl_int i = Pow2(d) - 1; i < N; i += Pow2(d))
+      {
+        auto other = i - Pow2(d - 1);
+        auto tmp = in_Data[i];
+        in_Data[i] += in_Data[other];
+        in_Data[other] = tmp;
+      }
     }
+  }
+
+  template<typename Type>
+  void CalcPrefixSum(mpArrayPtr<Type> in_Data)
+  {
+    const auto N = (cl_int)in_Data.m_uiCount;
+    MP_Assert(mpMath::IsPowerOf2(N), "The data size must be a power of 2.");
+    const auto k = (cl_int)mpMath::Log2((double)N);
+
+    UpSweep(in_Data);
+    in_Data[N - 1] = 0;
+    DownSweep(in_Data);
   }
 }
 
-template<typename Type>
-void CalcPrefixSum(mpArrayPtr<Type> in_Data)
+namespace Naive
 {
-  const auto N = in_Data.m_uiCount;
-
-  Type previous = 0;
-
-  // Don't do this in the loop because we are doing i-1 within it.
-  swap(in_Data[0], previous);
-  for (size_t i = 1; i < N; ++i)
+  template<typename Type>
+  void CalcPrefixSum(mpArrayPtr<Type> in_Data)
   {
-    swap(in_Data[i], previous);
-    in_Data[i] += in_Data[i - 1];
+    const auto N = in_Data.m_uiCount;
+
+    Type previous = 0;
+
+    // Don't do this in the loop because we are doing an i-1 access within it.
+    swap(in_Data[0], previous);
+    for (size_t i = 1; i < N; ++i)
+    {
+      swap(in_Data[i], previous);
+      in_Data[i] += in_Data[i - 1];
+    }
   }
 }
 
@@ -105,11 +126,11 @@ class Main : public mpApplication
     Queue.Initialize(Context, Device);
     mpProgram Program;
     MP_Verify(Program.LoadAndBuild(Context, Device, "Kernels/PrefixSum.cl"));
-    mpKernel Kernel;
-    Kernel.Initialize(Queue, Program, "CalculatePrefixSum");
+    mpKernel Kernel_CalculatePrefixSum;
+    Kernel_CalculatePrefixSum.Initialize(Queue, Program, "PrefixSum");
 
-    const size_t E = 8;
-    const size_t N = Pow2(E); // 2 ^ E
+    // Number of Integers
+    const size_t N = 512;
 
     // Input
     //////////////////////////////////////////////////////////////////////////
@@ -140,38 +161,60 @@ class Main : public mpApplication
       outputData_GPU[i]             = inputData[i];
     }
 
+    //////////////////////////////////////////////////////////////////////////
+    /// Calculations
+    //////////////////////////////////////////////////////////////////////////
+    const bool naiveEnabled       = false;
+    const bool upDownSweepEnabled = true;
+    const bool gpuEnabled         = true;
+
     // CPU Calculation
     //////////////////////////////////////////////////////////////////////////
     {
       MP_LogBlock("CPU Calculation");
 
+      if (naiveEnabled)
       {
         MP_LogBlock("Output Data (CPU, Naive)");
-        CalcPrefixSum(mpMakeArrayPtr(outputData_CPU_Naive));
+        MP_Profile("CPU, Naive");
+        Naive::CalcPrefixSum(mpMakeArrayPtr(outputData_CPU_Naive));
         PrintData(mpMakeArrayPtr(outputData_CPU_Naive));
       }
 
+      if (upDownSweepEnabled)
       {
         MP_LogBlock("Output Data (CPU, Up/Downsweep)");
-        CalcPrefixSumParallelizable(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+        MP_Profile("CPU, Naive Up/Downsweep");
+        UpDown::UpSweep(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
         PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
       }
     }
 
     // GPU Calculation
     //////////////////////////////////////////////////////////////////////////
-    if(false){
+    if (gpuEnabled)
+    {
       MP_LogBlock("GPU Calculation");
+      MP_Profile("Kernel_CalculatePrefixSum");
       mpBuffer outputBuffer;
       outputBuffer.Initialize(Context,
-                              mpBufferFlags::ReadOnly,
+                              mpBufferFlags::ReadWrite,
                               mpMakeArrayPtr(outputData_GPU));
 
-      Kernel.PushArg(outputBuffer);
-      Kernel.PushArg((size_t)mpMath::Log2((double)N));
-      Kernel.Execute(N);
+      Kernel_CalculatePrefixSum.PushArg(outputBuffer);
+      Kernel_CalculatePrefixSum.PushArg(outputBuffer);
+      Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(N));
 
-      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU), Queue);
+      const size_t blockSize = N / 2;
+      const size_t numBlocks = 1;
+      size_t globalWorkSize[] = { blockSize * numBlocks };
+      size_t localWorkSize[]  = { blockSize };
+
+      {
+        MP_Profile("Kernel Execution");
+        Kernel_CalculatePrefixSum.Execute(mpMakeArrayPtr(globalWorkSize), mpMakeArrayPtr(localWorkSize));
+        outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU), Queue);
+      }
 
       {
         MP_LogBlock("Output Data (GPU)");

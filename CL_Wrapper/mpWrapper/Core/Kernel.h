@@ -4,6 +4,17 @@
 class mpBuffer;
 class mpCommandQueue;
 
+/// \brief Used to allocate local memory with given size * sizeof(Type)
+class mpLocalMemoryBase
+{
+public:
+  size_t size;
+
+  mpLocalMemoryBase(size_t size) : size(size) {}
+};
+template<typename Type>
+mpLocalMemoryBase mpLocalMemory(size_t N) { return mpLocalMemoryBase(sizeof(Type) * N); }
+
 class MP_WrapperAPI mpKernel
 {
   const char* m_szName = nullptr;
@@ -26,6 +37,12 @@ public:
   void PushArg(const ValueType& Value)
   {
     MP_Verify(clSetKernelArg(m_Id, m_uiCurrentArgCount, sizeof(ValueType), (const void*)&Value));
+    ++m_uiCurrentArgCount;
+  }
+
+  void PushArg(mpLocalMemoryBase mem)
+  {
+    MP_Verify(clSetKernelArg(m_Id, m_uiCurrentArgCount, mem.size, nullptr));
     ++m_uiCurrentArgCount;
   }
 

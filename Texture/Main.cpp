@@ -7,24 +7,6 @@
 #include "Object.h"
 #include "ScreenText.h"
 
-struct ProfileScope
-{
-  mpTime m_Begin;
-  std::string m_Name;
-
-  ProfileScope(const char* szName) : m_Begin(mpTime::Now()), m_Name(szName)
-  {
-  }
-
-  ~ProfileScope()
-  {
-    mpLog::Dev("'%s' finished in %f seconds", m_Name.c_str(), (mpTime::Now() - m_Begin).GetSeconds());
-  }
-};
-
-#define Profile(szName) ::ProfileScope MP_Concat(_profile_, __LINE__)(szName)
-#define ProfiledLogBlock(szName) MP_LogBlock("Profiling: %s", szName); ::ProfileScope MP_Concat(_profile_, __LINE__)(szName)
-
 class Main : public mpApplication
 {
   sf::RenderWindow  m_Window;
@@ -160,44 +142,44 @@ class Main : public mpApplication
     mpBuffer ResultBuffer;
 
     {
-      ProfiledLogBlock("Initialization");
+      MP_ProfiledLogBlock("Initialization");
 
       // Copy pixels to GPU
       {
-        Profile("Initializing InputBuffer");
+        MP_Profile("Initializing InputBuffer");
         InputBuffer.Initialize(m_Context, mpBufferFlags::ReadOnly, PixelsPtr);
       }
 
       // Create buffer on GPU for the result
       {
-        Profile("Initializing ResultBuffer");
+        MP_Profile("Initializing ResultBuffer");
         ResultBuffer.Initialize(m_Context, mpBufferFlags::WriteOnly, uiPixelCount * sizeof(cl_uchar4));
       }
 
       // Run Kernel with input and result buffer as arguments
       {
-        Profile("Pushing Kernel Args");
+        MP_Profile("Pushing Kernel Args");
         Kernel.PushArg(InputBuffer);
         Kernel.PushArg(ResultBuffer);
       }
     }
 
     {
-      ProfiledLogBlock("Execution");
+      MP_ProfiledLogBlock("Execution");
       {
-        Profile("Executing Kernel");
+        MP_Profile("Executing Kernel");
         Kernel.Execute(GlobalWorkSize);
       }
 
       {
-        Profile("Retrieve Results");
+        MP_Profile("Retrieve Results");
         // Copy results from GPU back to CPU
         ResultBuffer.ReadInto(PixelsPtr, m_Queue);
       }
     }
 
     {
-      ProfiledLogBlock("Texture Update");
+      MP_ProfiledLogBlock("Texture Update");
       // Update the contents of the result texture with the output of the Kernel
       TextureOf(m_Result).update(Image);
     }
