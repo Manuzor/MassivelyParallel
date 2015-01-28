@@ -48,24 +48,37 @@ namespace UpDown
   }
 
   template<typename Type>
-  void CalcPrefixSum(mpArrayPtr<Type> in_Data)
+  void CalcPrefixSum(mpArrayPtr<Type> in_Data, mpArrayPtr<Type> out_Data)
   {
+    MP_Assert(out_Data.m_uiCount >= in_Data.m_uiCount, "The out-buffer is not big enough.");
+
     const auto N = (cl_int)in_Data.m_uiCount;
+    if (N <= 0)
+      return;
+
     MP_Assert(mpMath::IsPowerOf2(N), "The data size must be a power of 2.");
     const auto k = (cl_int)mpMath::Log2((double)N);
 
-    UpSweep(in_Data);
-    in_Data[N - 1] = 0;
-    DownSweep(in_Data);
+    // Copy over the data so we can work on stuff in-place.
+    memcpy(out_Data.m_Data, in_Data.m_Data, in_Data.m_uiCount * sizeof(Type));
+
+    UpSweep(out_Data);
+    out_Data[N - 1] = 0;
+    DownSweep(out_Data);
   }
 }
 
 namespace Naive
 {
+  /// \brief Calculates the prefix sum in-place.
   template<typename Type>
   void CalcPrefixSum(mpArrayPtr<Type> in_Data)
   {
+    MP_Assert(out_Data.m_uiCount >= in_Data.m_uiCount, "The out-buffer is not big enough.");
+
     const auto N = in_Data.m_uiCount;
+    if (N <= 0)
+      return;
 
     Type previous = 0;
 
@@ -77,11 +90,29 @@ namespace Naive
       in_Data[i] += in_Data[i - 1];
     }
   }
+
+  /// \brief Calculated the prefix sum iteratively.
+  template<typename Type>
+  void CalcPrefixSum(mpArrayPtr<Type> in_Data, mpArrayPtr<Type> out_Data)
+  {
+    MP_Assert(out_Data.m_uiCount >= in_Data.m_uiCount, "The out-buffer is not big enough.");
+
+    const auto N = in_Data.m_uiCount;
+    if (N <= 0)
+      return;
+
+    out_Data[0] = 0;
+    for (size_t i = 0; i < N - 1; ++i)
+    {
+      out_Data[i + 1] = out_Data[i] + in_Data[i];
+    }
+  }
 }
 
 template<typename Type>
 void PrintData(mpArrayPtr<Type> Data, const size_t uiWidth = 10)
 {
+  //return;
   const size_t uiHeight = Data.m_uiCount / uiWidth;
   for (size_t i = 0; i < uiHeight + 1; ++i)
   {
@@ -154,19 +185,21 @@ class Main : public mpApplication
     cl_int outputData_CPU_Naive[N];
     cl_int outputData_CPU_UpDownSweep[N];
     cl_int outputData_GPU[N];
-    for (size_t i = 0; i < N; ++i)
-    {
-      outputData_CPU_Naive[i]       = inputData[i];
-      outputData_CPU_UpDownSweep[i] = inputData[i];
-      outputData_GPU[i]             = inputData[i];
-    }
+    //for (size_t i = 0; i < N; ++i)
+    //{
+    //  outputData_CPU_Naive[i]       = inputData[i];
+    //  outputData_CPU_UpDownSweep[i] = inputData[i];
+    //  outputData_GPU[i]             = inputData[i];
+    //}
 
     //////////////////////////////////////////////////////////////////////////
     /// Calculations
     //////////////////////////////////////////////////////////////////////////
-    const bool naiveEnabled       = false;
-    const bool upDownSweepEnabled = true;
-    const bool gpuEnabled         = true;
+    const bool naiveEnabled       = true;  // Enable or disable single-threaded naive algorithm on CPU.
+    const bool upDownSweepEnabled = true;  // Enable or disable single-threaded up/down sweep on the CPU.
+    const bool gpuEnabled         = true;  // Enable or disable multi-threaded up/down sweep on the GPU.
+
+    const size_t numCycles = 1;
 
     // CPU Calculation
     //////////////////////////////////////////////////////////////////////////
@@ -176,16 +209,22 @@ class Main : public mpApplication
       if (naiveEnabled)
       {
         MP_LogBlock("Output Data (CPU, Naive)");
-        MP_Profile("CPU, Naive");
-        Naive::CalcPrefixSum(mpMakeArrayPtr(outputData_CPU_Naive));
+        {
+          MP_Profile("CPU, Naive");
+          for (size_t i = 0; i < numCycles; ++i)
+            Naive::CalcPrefixSum(mpMakeArrayPtr(inputData), mpMakeArrayPtr(outputData_CPU_Naive));
+        }
         PrintData(mpMakeArrayPtr(outputData_CPU_Naive));
       }
 
       if (upDownSweepEnabled)
       {
         MP_LogBlock("Output Data (CPU, Up/Downsweep)");
-        MP_Profile("CPU, Naive Up/Downsweep");
-        UpDown::UpSweep(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+        {
+          MP_Profile("CPU, Up/Downsweep");
+          for (size_t i = 0; i < numCycles; ++i)
+            UpDown::CalcPrefixSum(mpMakeArrayPtr(inputData), mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+        }
         PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
       }
     }
@@ -196,12 +235,16 @@ class Main : public mpApplication
     {
       MP_LogBlock("GPU Calculation");
       MP_Profile("Kernel_CalculatePrefixSum");
+      mpBuffer inputBuffer;
+      inputBuffer.Initialize(Context,
+                             mpBufferFlags::ReadOnly,
+                             mpMakeArrayPtr(inputData));
       mpBuffer outputBuffer;
       outputBuffer.Initialize(Context,
                               mpBufferFlags::ReadWrite,
                               mpMakeArrayPtr(outputData_GPU));
 
-      Kernel_CalculatePrefixSum.PushArg(outputBuffer);
+      Kernel_CalculatePrefixSum.PushArg(inputBuffer);
       Kernel_CalculatePrefixSum.PushArg(outputBuffer);
       Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(N));
 
