@@ -185,12 +185,6 @@ class Main : public mpApplication
     cl_int outputData_CPU_Naive[N];
     cl_int outputData_CPU_UpDownSweep[N];
     cl_int outputData_GPU[N];
-    //for (size_t i = 0; i < N; ++i)
-    //{
-    //  outputData_CPU_Naive[i]       = inputData[i];
-    //  outputData_CPU_UpDownSweep[i] = inputData[i];
-    //  outputData_GPU[i]             = inputData[i];
-    //}
 
     //////////////////////////////////////////////////////////////////////////
     /// Calculations
@@ -203,38 +197,37 @@ class Main : public mpApplication
 
     // CPU Calculation
     //////////////////////////////////////////////////////////////////////////
+    if (naiveEnabled)
     {
-      MP_LogBlock("CPU Calculation");
-
-      if (naiveEnabled)
+      MP_LogBlock("CPU: Naive (%u cycle/s)", numCycles);
       {
-        MP_LogBlock("Output Data (CPU, Naive)");
+        MP_Profile("CPU: Naive");
+        for (size_t i = 0; i < numCycles; ++i)
         {
-          MP_Profile("CPU, Naive");
-          for (size_t i = 0; i < numCycles; ++i)
-            Naive::CalcPrefixSum(mpMakeArrayPtr(inputData), mpMakeArrayPtr(outputData_CPU_Naive));
+          Naive::CalcPrefixSum(mpMakeArrayPtr(inputData), mpMakeArrayPtr(outputData_CPU_Naive));
         }
-        PrintData(mpMakeArrayPtr(outputData_CPU_Naive));
       }
+      PrintData(mpMakeArrayPtr(outputData_CPU_Naive));
+    }
 
-      if (upDownSweepEnabled)
+    if (upDownSweepEnabled)
+    {
+      MP_LogBlock("CPU: Up/Downsweep (%u cycle/s)", numCycles);
       {
-        MP_LogBlock("Output Data (CPU, Up/Downsweep)");
+        MP_Profile("CPU: Up/Downsweep");
+        for (size_t i = 0; i < numCycles; ++i)
         {
-          MP_Profile("CPU, Up/Downsweep");
-          for (size_t i = 0; i < numCycles; ++i)
-            UpDown::CalcPrefixSum(mpMakeArrayPtr(inputData), mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+          UpDown::CalcPrefixSum(mpMakeArrayPtr(inputData), mpMakeArrayPtr(outputData_CPU_UpDownSweep));
         }
-        PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
       }
+      PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
     }
 
     // GPU Calculation
     //////////////////////////////////////////////////////////////////////////
     if (gpuEnabled)
     {
-      MP_LogBlock("GPU Calculation");
-      MP_Profile("Kernel_CalculatePrefixSum");
+      MP_LogBlock("GPU (%u cycle/s)", numCycles);
       mpBuffer inputBuffer;
       inputBuffer.Initialize(Context,
                              mpBufferFlags::ReadOnly,
@@ -244,25 +237,25 @@ class Main : public mpApplication
                               mpBufferFlags::ReadWrite,
                               mpMakeArrayPtr(outputData_GPU));
 
-      Kernel_CalculatePrefixSum.PushArg(inputBuffer);
-      Kernel_CalculatePrefixSum.PushArg(outputBuffer);
-      Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(N));
-
-      const size_t blockSize = N / 2;
-      const size_t numBlocks = 1;
+      const size_t blockSize  = N / 2;
+      const size_t numBlocks  = 1;
       size_t globalWorkSize[] = { blockSize * numBlocks };
       size_t localWorkSize[]  = { blockSize };
 
       {
-        MP_Profile("Kernel Execution");
-        Kernel_CalculatePrefixSum.Execute(mpMakeArrayPtr(globalWorkSize), mpMakeArrayPtr(localWorkSize));
-        outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU), Queue);
+        MP_Profile("GPU");
+        for(size_t i = 0; i < numCycles; ++i)
+        {
+          Kernel_CalculatePrefixSum.PushArg(inputBuffer);
+          Kernel_CalculatePrefixSum.PushArg(outputBuffer);
+          Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(N));
+
+          Kernel_CalculatePrefixSum.Execute(mpMakeArrayPtr(globalWorkSize), mpMakeArrayPtr(localWorkSize));
+        }
       }
 
-      {
-        MP_LogBlock("Output Data (GPU)");
-        PrintData(mpMakeArrayPtr(outputData_GPU));
-      }
+      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU), Queue);
+      PrintData(mpMakeArrayPtr(outputData_GPU));
     }
 
     return Quit;
