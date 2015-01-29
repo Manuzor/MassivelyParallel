@@ -57,7 +57,6 @@ namespace UpDown
       return;
 
     MP_Assert(mpMath::IsPowerOf2(N), "The data size must be a power of 2.");
-    const auto k = (cl_int)mpMath::Log2((double)N);
 
     // Copy over the data so we can work on stuff in-place.
     memcpy(out_Data.m_Data, in_Data.m_Data, in_Data.m_uiCount * sizeof(Type));
@@ -124,9 +123,9 @@ void PrintData(mpArrayPtr<Type> Data, const size_t uiWidth = 10)
       if(index >= Data.m_uiCount)
         break;
 
-      msg << ' ' << std::setw(3) << Data[index];
+      msg << ' ' << std::setw(4) << Data[index];
     }
-    mpLog::Info("%3d - %3d:%s", i * uiWidth, i * uiWidth + j - 1, msg.str().c_str());
+    mpLog::Info("%4d - %4d:%s", i * uiWidth, i * uiWidth + j - 1, msg.str().c_str());
   }
 }
 
@@ -161,11 +160,14 @@ class Main : public mpApplication
     Kernel_CalculatePrefixSum.Initialize(Queue, Program, "PrefixSum");
 
     // Number of Integers
-    const size_t N = 512;
+    const size_t N = 1024;
+    mpLog::Info("N = %u", N);
 
     // Input
     //////////////////////////////////////////////////////////////////////////
-    cl_int inputData[N];
+    auto inputData = new cl_int[N];
+    MP_OnScopeExit{ delete[] inputData; };
+
     for (size_t i = 0; i < N; ++i)
     {
       inputData[i] = 1;
@@ -173,24 +175,29 @@ class Main : public mpApplication
     mpBuffer inputBuffer;
     inputBuffer.Initialize(Context,
                            mpBufferFlags::ReadOnly,
-                           mpMakeArrayPtr(inputData));
+                           mpMakeArrayPtr(inputData, N));
 
     {
       MP_LogBlock("Input Data");
-      PrintData(mpMakeArrayPtr(inputData));
+      PrintData(mpMakeArrayPtr(inputData, N));
     }
 
     // Output Data
     //////////////////////////////////////////////////////////////////////////
-    cl_int outputData_CPU_Naive[N];
-    cl_int outputData_CPU_UpDownSweep[N];
-    cl_int outputData_GPU[N];
+    auto outputData_CPU_Naive = new cl_int[N];
+    MP_OnScopeExit{ delete[] outputData_CPU_Naive; };
+
+    auto outputData_CPU_UpDownSweep = new cl_int[N];
+    MP_OnScopeExit{ delete[] outputData_CPU_UpDownSweep; };
+
+    auto outputData_GPU = new cl_int[N];
+    MP_OnScopeExit{ delete[] outputData_GPU; };
 
     //////////////////////////////////////////////////////////////////////////
     /// Calculations
     //////////////////////////////////////////////////////////////////////////
     const bool naiveEnabled       = true;  // Enable or disable single-threaded naive algorithm on CPU.
-    const bool upDownSweepEnabled = true;  // Enable or disable single-threaded up/down sweep on the CPU.
+    const bool upDownSweepEnabled = false; // Enable or disable single-threaded up/down sweep on the CPU.
     const bool gpuEnabled         = true;  // Enable or disable multi-threaded up/down sweep on the GPU.
 
     const size_t numCycles = 1;
@@ -201,26 +208,30 @@ class Main : public mpApplication
     {
       MP_LogBlock("CPU: Naive (%u cycle/s)", numCycles);
       {
+        mpLog::Info("Running...");
         MP_Profile("CPU: Naive");
         for (size_t i = 0; i < numCycles; ++i)
         {
-          Naive::CalcPrefixSum(mpMakeArrayPtr(inputData), mpMakeArrayPtr(outputData_CPU_Naive));
+          Naive::CalcPrefixSum(mpMakeArrayPtr(inputData, N),
+                               mpMakeArrayPtr(outputData_CPU_Naive, N));
         }
       }
-      PrintData(mpMakeArrayPtr(outputData_CPU_Naive));
+      PrintData(mpMakeArrayPtr(outputData_CPU_Naive, N));
     }
 
     if (upDownSweepEnabled)
     {
       MP_LogBlock("CPU: Up/Downsweep (%u cycle/s)", numCycles);
       {
+        mpLog::Info("Running...");
         MP_Profile("CPU: Up/Downsweep");
         for (size_t i = 0; i < numCycles; ++i)
         {
-          UpDown::CalcPrefixSum(mpMakeArrayPtr(inputData), mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+          UpDown::CalcPrefixSum(mpMakeArrayPtr(inputData, N),
+                                mpMakeArrayPtr(outputData_CPU_UpDownSweep, N));
         }
       }
-      PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep));
+      PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep, N));
     }
 
     // GPU Calculation
@@ -231,18 +242,30 @@ class Main : public mpApplication
       mpBuffer inputBuffer;
       inputBuffer.Initialize(Context,
                              mpBufferFlags::ReadOnly,
-                             mpMakeArrayPtr(inputData));
+                             mpMakeArrayPtr(inputData, N));
       mpBuffer outputBuffer;
       outputBuffer.Initialize(Context,
                               mpBufferFlags::ReadWrite,
-                              mpMakeArrayPtr(outputData_GPU));
+                              mpMakeArrayPtr(outputData_GPU, N));
 
-      const size_t blockSize  = N / 2;
-      const size_t numBlocks  = 1;
-      size_t globalWorkSize[] = { blockSize * numBlocks };
-      size_t localWorkSize[]  = { blockSize };
+      size_t globalWorkSize[] = { N / 2 };
+      size_t localWorkSize[]  = { 256 };
 
       {
+        // In case the global work size is not a multiple of the local work size,
+        // we adjust it to be so. => for LN = 512 and N = 123: GN = 512
+        auto remainder = N % 256;
+        if(remainder)
+        {
+          globalWorkSize[0] += localWorkSize[0] - remainder;
+        }
+      }
+
+      mpLog::Info("Global work size: %u", globalWorkSize[0]);
+      mpLog::Info("Local work size:  %u", localWorkSize[0]);
+
+      {
+        mpLog::Info("Running...");
         MP_Profile("GPU");
         for(size_t i = 0; i < numCycles; ++i)
         {
@@ -254,8 +277,8 @@ class Main : public mpApplication
         }
       }
 
-      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU), Queue);
-      PrintData(mpMakeArrayPtr(outputData_GPU));
+      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
+      PrintData(mpMakeArrayPtr(outputData_GPU, N));
     }
 
     return Quit;

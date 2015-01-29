@@ -5,11 +5,11 @@
 #define GH get_global_size(1) ///< Global work size in y-direction
 #define GN (GW * GH)          ///< Total global work size
 
-#define LX get_local_id(0)   ///< Global x-coordinate
-#define LY get_local_id(1)   ///< Global y-coordinate
-#define LW get_local_size(0) ///< Global work size in x-direction
-#define LH get_local_size(1) ///< Global work size in y-direction
-#define LN (LW * LH)         ///< Total global work size
+#define LX get_local_id(0)   ///< Local x-coordinate
+#define LY get_local_id(1)   ///< Local y-coordinate
+#define LW get_local_size(0) ///< Local work size in x-direction
+#define LH get_local_size(1) ///< Local work size in y-direction
+#define LN (LW * LH)         ///< Total local work size
 
 #define Pow2(x) (1 << (x))
 
@@ -80,6 +80,7 @@ void DownSweep512(local int* cache)
 
 /// Calculates the prefix sum for the given \a data using the up-sweep and down-sweep techniques.
 /// \note Size of \a cache must be 512 * sizeof(int).
+/// \note Terminates with a barrier.
 void PrefixSum512(global int* in, global int* out, local int* cache)
 {
   // Preparation
@@ -112,6 +113,9 @@ void PrefixSum512(global int* in, global int* out, local int* cache)
 /// \brief Calculates prefix sums in a block-wise manner.
 kernel void PrefixSum(global int* in_A, global int* out_B, local int* cache)
 {
+  int groupID = get_group_id(0);
+  int offset = groupID * 512;
+  //int offset = 512;
   // Calculate the prefix sum and store the result in the same array.
-  PrefixSum512(in_A, out_B, cache);
+  PrefixSum512(in_A + offset, out_B + offset, cache + offset);
 }

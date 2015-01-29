@@ -50,6 +50,10 @@ namespace mpLog
   MP_WrapperAPI void Dev(const char* szFormat, ...);
   MP_WrapperAPI void Debug(const char* szFormat, ...);
 
+  /// \brief This does nothing by default. Within a translation unit (.cpp),
+  ///        Use #define VerboseDebugMessage Debug to enable it.
+  inline void VerboseDebugMessage(const char* szFormat, ...) {}
+
   MP_WrapperAPI void SetLogLevel(mpLogLevel Level);
   MP_WrapperAPI mpLogLevel GetLogLevel();
 }

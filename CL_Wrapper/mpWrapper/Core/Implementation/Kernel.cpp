@@ -4,6 +4,8 @@
 #include "mpWrapper/Core/CommandQueue.h"
 #include "mpWrapper/Utilities/String.h"
 
+#define VerboseDebugMessage VerboseDebugMessage
+
 void mpKernel::Initialize(const mpCommandQueue& Queue, const mpProgram& Program, const char* szKernelName)
 {
   Release();
@@ -38,7 +40,7 @@ void mpKernel::Execute(mpArrayPtr<size_t> GlobalWorkSize, mpArrayPtr<size_t> Loc
   MP_Assert(LocalWorkSize.m_Data == nullptr || GlobalWorkSize.m_uiCount == LocalWorkSize.m_uiCount,
             "Global and Local work sizes must have the same dimensions");
 
-  mpLog::Debug("Running Kernel: %s", m_szName);
+  mpLog::VerboseDebugMessage("Running Kernel: %s", m_szName);
   MP_Verify(clEnqueueNDRangeKernel(m_pQueue->m_Id, m_Id,                        // Command queue and kernel
                                    (cl_uint)GlobalWorkSize.m_uiCount, nullptr,  // Work dimensions and global offset
                                    GlobalWorkSize.m_Data, LocalWorkSize.m_Data, // Global and local work sizes
