@@ -133,13 +133,47 @@ class Main : public mpApplication
 {
   mpTime m_TimeRunning;
 
+  /// Number of elements to be processed.
+  const cl_int N = 512;
+
+  /// The number of elements that can be processed by a single work group.
+  const cl_int blockSize = 512;
+
+  /// Number of times the prefix sums are calculated.
+  /// \note Used for profiling purposes.
+  const cl_int numCycles = 1;
+
+  /// Enable or disable single-threaded naive algorithm on CPU.
+  const bool naiveEnabled       = true;
+
+  /// Enable or disable single-threaded up/down sweep on the CPU.
+  const bool upDownSweepEnabled = false;
+
+  /// Enable or disable multi-threaded up/down sweep on the GPU.
+  const bool gpuEnabled         = true;
+
+  cl_int* inputData                  = nullptr;
+  cl_int* outputData_CPU_Naive       = nullptr;
+  cl_int* outputData_CPU_UpDownSweep = nullptr;
+  cl_int* outputData_GPU             = nullptr;
+
   virtual void PostStartup() override
   {
     m_TimeRunning = mpTime::Now();
+
+    inputData                  = new cl_int[N];
+    outputData_CPU_Naive       = new cl_int[N];
+    outputData_CPU_UpDownSweep = new cl_int[N];
+    outputData_GPU             = new cl_int[N + blockSize * 2]; /// Allocate enough for the worst case.
   }
 
   virtual void PreShutdown() override
   {
+    delete outputData_GPU;
+    delete outputData_CPU_UpDownSweep;
+    delete outputData_CPU_Naive;
+    delete inputData;
+
     auto tElapsedTime = mpTime::Now() - m_TimeRunning;
     mpLog::Info("Finished execution in %f seconds\n", tElapsedTime.GetSeconds());
     printf("Press any key to quit . . .");
@@ -159,15 +193,10 @@ class Main : public mpApplication
     mpKernel Kernel_CalculatePrefixSum;
     Kernel_CalculatePrefixSum.Initialize(Queue, Program, "PrefixSum");
 
-    // Number of Integers
-    const size_t N = 1024;
     mpLog::Info("N = %u", N);
 
     // Input
     //////////////////////////////////////////////////////////////////////////
-    auto inputData = new cl_int[N];
-    MP_OnScopeExit{ delete[] inputData; };
-
     for (size_t i = 0; i < N; ++i)
     {
       inputData[i] = 1;
@@ -181,26 +210,6 @@ class Main : public mpApplication
       MP_LogBlock("Input Data");
       PrintData(mpMakeArrayPtr(inputData, N));
     }
-
-    // Output Data
-    //////////////////////////////////////////////////////////////////////////
-    auto outputData_CPU_Naive = new cl_int[N];
-    MP_OnScopeExit{ delete[] outputData_CPU_Naive; };
-
-    auto outputData_CPU_UpDownSweep = new cl_int[N];
-    MP_OnScopeExit{ delete[] outputData_CPU_UpDownSweep; };
-
-    auto outputData_GPU = new cl_int[N];
-    MP_OnScopeExit{ delete[] outputData_GPU; };
-
-    //////////////////////////////////////////////////////////////////////////
-    /// Calculations
-    //////////////////////////////////////////////////////////////////////////
-    const bool naiveEnabled       = true;  // Enable or disable single-threaded naive algorithm on CPU.
-    const bool upDownSweepEnabled = false; // Enable or disable single-threaded up/down sweep on the CPU.
-    const bool gpuEnabled         = true;  // Enable or disable multi-threaded up/down sweep on the GPU.
-
-    const size_t numCycles = 1;
 
     // CPU Calculation
     //////////////////////////////////////////////////////////////////////////
@@ -239,30 +248,31 @@ class Main : public mpApplication
     if (gpuEnabled)
     {
       MP_LogBlock("GPU (%u cycle/s)", numCycles);
+
+      const auto numBlocks = N % blockSize == 0 ?
+                             // If N is a multiple of blockSize:
+                             N / blockSize :
+                             // Else, N is NOT a multiple of blockSize:
+                             (N / blockSize) + 1;
+
+      const auto numItems   = numBlocks * blockSize;
+      const auto numThreads = numItems;
+
+      size_t globalWorkSize[] = { numThreads };
+      size_t localWorkSize[]  = { blockSize / 2 };
+
+      mpLog::Info("Total number of items to process: %u", numItems);
+      mpLog::Info("Total number of threads:          %u", globalWorkSize[0]);
+      mpLog::Info("Number of threads per work group: %u", localWorkSize[0]);
+
       mpBuffer inputBuffer;
       inputBuffer.Initialize(Context,
                              mpBufferFlags::ReadOnly,
-                             mpMakeArrayPtr(inputData, N));
+                             mpMakeArrayPtr(inputData, numItems));
       mpBuffer outputBuffer;
       outputBuffer.Initialize(Context,
                               mpBufferFlags::ReadWrite,
-                              mpMakeArrayPtr(outputData_GPU, N));
-
-      size_t globalWorkSize[] = { N / 2 };
-      size_t localWorkSize[]  = { 256 };
-
-      {
-        // In case the global work size is not a multiple of the local work size,
-        // we adjust it to be so. => for LN = 512 and N = 123: GN = 512
-        auto remainder = N % 256;
-        if(remainder)
-        {
-          globalWorkSize[0] += localWorkSize[0] - remainder;
-        }
-      }
-
-      mpLog::Info("Global work size: %u", globalWorkSize[0]);
-      mpLog::Info("Local work size:  %u", localWorkSize[0]);
+                              mpMakeArrayPtr(outputData_GPU, numItems));
 
       {
         mpLog::Info("Running...");
@@ -271,13 +281,14 @@ class Main : public mpApplication
         {
           Kernel_CalculatePrefixSum.PushArg(inputBuffer);
           Kernel_CalculatePrefixSum.PushArg(outputBuffer);
-          Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(N));
+          Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(numItems));
 
-          Kernel_CalculatePrefixSum.Execute(mpMakeArrayPtr(globalWorkSize), mpMakeArrayPtr(localWorkSize));
+          Kernel_CalculatePrefixSum.Execute(mpMakeArrayPtr(globalWorkSize),
+                                            mpMakeArrayPtr(localWorkSize));
         }
       }
 
-      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
+      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, numItems), Queue);
       PrintData(mpMakeArrayPtr(outputData_GPU, N));
     }
 

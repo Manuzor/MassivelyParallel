@@ -115,7 +115,6 @@ kernel void PrefixSum(global int* in_A, global int* out_B, local int* cache)
 {
   int groupID = get_group_id(0);
   int offset = groupID * 512;
-  //int offset = 512;
   // Calculate the prefix sum and store the result in the same array.
   PrefixSum512(in_A + offset, out_B + offset, cache + offset);
 }
