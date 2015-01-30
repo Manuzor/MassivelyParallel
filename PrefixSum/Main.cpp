@@ -256,7 +256,7 @@ class Main : public mpApplication
                              (N / blockSize) + 1;
 
       const auto numItems   = numBlocks * blockSize;
-      const auto numThreads = numItems;
+      const auto numThreads = numItems / 2;
 
       size_t globalWorkSize[] = { numThreads };
       size_t localWorkSize[]  = { blockSize / 2 };
