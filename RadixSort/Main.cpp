@@ -31,13 +31,61 @@ void CalcPrefixSum(mpArrayPtr<Type> in_Data, mpArrayPtr<Type> out_Data)
 
 namespace RadixSort
 {
-  /// \brief Radix sort implementation.
-  ///        Sorting by the most significant digit (MSD) first.
-  template<typename Type>
-  void MSD(mpArrayPtr<Type> data)
+  void CountValues(mpArrayPtr<cl_int> data,
+                   cl_int byteNr,
+                   cl_int* counts)
   {
-    // TODO implement me.
-    std::sort(data.m_Data, data.m_Data + data.m_uiCount);
+    memset(counts, 0, 256 * sizeof(cl_int));
+
+    auto shiftAmount = byteNr * 8; // 1 byte = 8 bits => multiply by 8.
+    for (cl_int i = 0; i < data.m_uiCount; ++i)
+    {
+      auto val = (data[i] >> shiftAmount) & 255;
+      ++counts[val];
+    }
+  }
+
+  void InsertSorted(mpArrayPtr<cl_int> source, mpArrayPtr<cl_int> destination,
+                    cl_int* prefix, cl_int byteNr)
+  {
+    auto shiftAmount = byteNr * 8; // 1 byte = 8 bits => multiply by 8.
+
+    for(cl_int i = 0; i < source.m_uiCount; ++i)
+    {
+      auto val = (source[i] >> shiftAmount) & 255; // Only look at 1 byte.
+      auto& index = prefix[val];
+      destination[index] = source[i];
+      ++index;
+    }
+  }
+
+  /// \brief Radix sort implementation.
+  ///        Sorting by the least significant digit (LSD) first.
+  template<typename Type>
+  void LSD(mpArrayPtr<Type> data)
+  {
+    MP_LogBlock("MSD");
+
+    auto temp = new cl_int[data.m_uiCount];
+    cl_int counts[256];
+    cl_int prefix[256];
+    for (cl_int byteNr = 0; byteNr < 4; ++byteNr)
+    {
+      CountValues(data, byteNr, counts);
+      CalcPrefixSum(mpMakeArrayPtr(counts), mpMakeArrayPtr(prefix));
+      if (byteNr % 2 == 0)
+      {
+        InsertSorted(data, mpMakeArrayPtr(temp, data.m_uiCount), prefix, byteNr);
+      }
+      else
+      {
+        InsertSorted(mpMakeArrayPtr(temp, data.m_uiCount), data, prefix, byteNr);
+      }
+    }
+
+    //std::sort(data.m_Data, data.m_Data + data.m_uiCount);
+
+    delete[] temp;
   }
 }
 
@@ -116,7 +164,7 @@ class Main : public mpApplication
 
     {
       MP_LogBlock("Input Data");
-      PrintData(mpMakeArrayPtr(inputData, N));
+      //PrintData(mpMakeArrayPtr(inputData, N));
     }
 
     // Process data.
@@ -137,7 +185,8 @@ class Main : public mpApplication
       mpLog::Info("Running...");
       MP_Profile("CPU");
 
-      RadixSort::MSD(mpMakeArrayPtr(outputData_CPU, N));
+      RadixSort::LSD(mpMakeArrayPtr(outputData_CPU, N));
+      //Hahn::radixsort((int*)outputData_CPU, (int)N);
     }
     PrintData(mpMakeArrayPtr(outputData_CPU, N));
   }
