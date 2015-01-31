@@ -16,7 +16,9 @@ public:
 
 public:
   Type m_Type = Type::Invalid;
-  Id m_Id;
+  Id m_Id = nullptr;
+
+  ~mpDevice() { m_Id = nullptr; }
 
   static mpDevice GetGPU(const mpPlatform& Platform, size_t uiIndex);
 };

@@ -169,10 +169,10 @@ class Main : public mpApplication
 
   virtual void PreShutdown() override
   {
-    delete outputData_GPU;
-    delete outputData_CPU_UpDownSweep;
-    delete outputData_CPU_Naive;
-    delete inputData;
+    delete[] outputData_GPU;
+    delete[] outputData_CPU_UpDownSweep;
+    delete[] outputData_CPU_Naive;
+    delete[] inputData;
 
     auto tElapsedTime = mpTime::Now() - m_TimeRunning;
     mpLog::Info("Finished execution in %f seconds\n", tElapsedTime.GetSeconds());
@@ -182,7 +182,8 @@ class Main : public mpApplication
 
   virtual QuitOrContinue Run() override
   {
-    auto Platform = mpPlatform::Get();
+    mpPlatform Platform;
+    Platform.Initialize();
     auto Device = mpDevice::GetGPU(Platform, 0);
     mpContext Context;
     Context.Initialize(Device);

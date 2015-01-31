@@ -20,8 +20,8 @@ class Main : public mpApplication
   ScreenText m_ResultCaption;
 
   /// CL Stuff
-  mpPlatform m_Platform = mpPlatform::Get();
-  mpDevice m_Device = mpDevice::GetGPU(m_Platform, 0);
+  mpPlatform m_Platform;
+  mpDevice m_Device;
   mpContext m_Context;
   mpCommandQueue m_Queue;
   mpProgram m_Program;
@@ -50,6 +50,8 @@ class Main : public mpApplication
   virtual void PostStartup() final override
   {
     // Initialize CL stuff
+    m_Platform.Initialize();
+    m_Device = mpDevice::GetGPU(m_Platform, 0);
     m_Context.Initialize(m_Device);
     m_Queue.Initialize(m_Context, m_Device);
     MP_Verify(m_Program.LoadAndBuild(m_Context, m_Device, "Kernels/Blend.cl"));

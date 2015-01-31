@@ -97,7 +97,8 @@ static void Test2()
 
 static void Test3()
 {
-  auto Platform = mpPlatform::Get();
+  mpPlatform Platform;
+  Platform.Initialize();
   auto Device = mpDevice::GetGPU(Platform, 0);
   mpContext Context;
   Context.Initialize(Device);
@@ -159,7 +160,8 @@ static void Test5(const char* szFileName, const char* szKernelFile)
   mpLog::Info("Matrix: %s", szFileName);
   mpLog::Info("Kernel: %s", szKernelFile);
 
-  auto Platform = mpPlatform::Get();
+  mpPlatform Platform;
+  Platform.Initialize();
   auto Device = mpDevice::GetGPU(Platform, 0);
   mpContext Context;
   Context.Initialize(Device);
@@ -281,7 +283,8 @@ static void Test6(size_t uiHeight, size_t uiWidth, const char* szKernelFile)
   {
     MP_LogBlock("GPU");
 
-    auto Platform = mpPlatform::Get();
+    mpPlatform Platform;
+    Platform.Initialize();
     auto Device = mpDevice::GetGPU(Platform, 0);
     mpContext Context;
     mpCommandQueue Commands;

@@ -6,7 +6,8 @@ class Main : public mpApplication
 {
   virtual QuitOrContinue Run() final override
   {
-    auto Platform = mpPlatform::Get();
+    mpPlatform Platform;
+    Platform.Initialize();
     auto Device = mpDevice::GetGPU(Platform, 0);
     mpContext Context;
     Context.Initialize(Device);

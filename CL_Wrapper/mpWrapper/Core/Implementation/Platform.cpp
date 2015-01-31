@@ -3,6 +3,9 @@
 
 void mpPlatform::Initialize()
 {
+  if (m_Id != nullptr)
+    Shutdown();
+
   cl_uint numPlatforms; // the number of platforms
   MP_Verify(clGetPlatformIDs(0, NULL, &numPlatforms));
 
@@ -21,12 +24,10 @@ void mpPlatform::Initialize()
 
 void mpPlatform::Shutdown()
 {
-  m_Id = nullptr;
-}
+  if (m_Id == nullptr)
+    return;
 
-mpPlatform mpPlatform::Get()
-{
-  mpPlatform result;
-  result.Initialize();
-  return result;
+  // TODO: Free stuff here?
+
+  m_Id = nullptr;
 }
