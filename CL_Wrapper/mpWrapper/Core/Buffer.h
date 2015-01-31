@@ -54,6 +54,6 @@ public:
   }
 
 private:
-  void Initialize(const mpContext& Context, mpBufferFlags Flags, size_t uiBufferSize, void* RawBuffer);
+  void Initialize(const mpContext& Context, mpBufferFlags Flags, size_t uiBufferSize, const void* RawBuffer);
   void ReadInto(size_t uiBufferSize, void* Buffer, const mpCommandQueue& Queue);
 };

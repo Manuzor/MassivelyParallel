@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kernels", "Kernels", "{920C
 		Kernels\Matrix.cl = Kernels\Matrix.cl
 		Kernels\MatrixSingleThreaded.cl = Kernels\MatrixSingleThreaded.cl
 		Kernels\PrefixSum.cl = Kernels\PrefixSum.cl
+		Kernels\PrefixSum256.cl = Kernels\PrefixSum256.cl
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assignments", "Assignments", "{590C115A-E042-4651-962E-A04F5DB9AB66}"
@@ -33,6 +34,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PrefixSum", "PrefixSum\Pref
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Texture", "Texture\Texture.vcxproj", "{F56A7988-B9A3-45C0-9384-76538033BD26}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C8DF60E3-9EE5-4F45-BC91-22A951B6DB5F} = {C8DF60E3-9EE5-4F45-BC91-22A951B6DB5F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RadixSort", "RadixSort\RadixSort.vcxproj", "{AC55250A-A598-46B2-BB3B-82C77B183502}"
 	ProjectSection(ProjectDependencies) = postProject
 		{C8DF60E3-9EE5-4F45-BC91-22A951B6DB5F} = {C8DF60E3-9EE5-4F45-BC91-22A951B6DB5F}
 	EndProjectSection
@@ -85,6 +91,14 @@ Global
 		{F56A7988-B9A3-45C0-9384-76538033BD26}.Release|Win32.Build.0 = Release|Win32
 		{F56A7988-B9A3-45C0-9384-76538033BD26}.Release|x64.ActiveCfg = Release|x64
 		{F56A7988-B9A3-45C0-9384-76538033BD26}.Release|x64.Build.0 = Release|x64
+		{AC55250A-A598-46B2-BB3B-82C77B183502}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AC55250A-A598-46B2-BB3B-82C77B183502}.Debug|Win32.Build.0 = Debug|Win32
+		{AC55250A-A598-46B2-BB3B-82C77B183502}.Debug|x64.ActiveCfg = Debug|x64
+		{AC55250A-A598-46B2-BB3B-82C77B183502}.Debug|x64.Build.0 = Debug|x64
+		{AC55250A-A598-46B2-BB3B-82C77B183502}.Release|Win32.ActiveCfg = Release|Win32
+		{AC55250A-A598-46B2-BB3B-82C77B183502}.Release|Win32.Build.0 = Release|Win32
+		{AC55250A-A598-46B2-BB3B-82C77B183502}.Release|x64.ActiveCfg = Release|x64
+		{AC55250A-A598-46B2-BB3B-82C77B183502}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -94,5 +108,6 @@ Global
 		{AFAC346A-FCF6-4BF1-BF60-DCECEA9BAA34} = {8AFDA41A-4CAA-4499-9755-3639418500E4}
 		{CD9B8F93-66F5-4958-A6BA-DA19984C97AD} = {590C115A-E042-4651-962E-A04F5DB9AB66}
 		{F56A7988-B9A3-45C0-9384-76538033BD26} = {590C115A-E042-4651-962E-A04F5DB9AB66}
+		{AC55250A-A598-46B2-BB3B-82C77B183502} = {590C115A-E042-4651-962E-A04F5DB9AB66}
 	EndGlobalSection
 EndGlobal

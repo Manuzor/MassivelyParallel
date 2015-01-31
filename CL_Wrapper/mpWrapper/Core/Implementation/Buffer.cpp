@@ -2,15 +2,20 @@
 #include "mpWrapper/Core/Buffer.h"
 #include "mpWrapper/Core/CommandQueue.h"
 
-void mpBuffer::Initialize(const mpContext& Context, mpBufferFlags Flags, size_t uiBufferSize, void* RawBuffer)
+void mpBuffer::Initialize(const mpContext& Context, mpBufferFlags Flags, size_t uiBufferSize, const void* RawBuffer)
 {
   Release();
 
   cl_int status;
   if (RawBuffer != nullptr)
-    m_Id = clCreateBuffer(Context.m_Id, Flags.m_Value | CL_MEM_COPY_HOST_PTR, uiBufferSize, RawBuffer, &status);
+  {
+    // TODO Find a way to not cast const away?
+    m_Id = clCreateBuffer(Context.m_Id, Flags.m_Value | CL_MEM_COPY_HOST_PTR, uiBufferSize, const_cast<void*>(RawBuffer), &status);
+  }
   else
+  {
     m_Id = clCreateBuffer(Context.m_Id, Flags.m_Value , uiBufferSize, nullptr, &status);
+  }
   MP_Verify(status);
 }
 
