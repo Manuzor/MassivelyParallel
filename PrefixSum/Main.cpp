@@ -134,7 +134,7 @@ class Main : public mpApplication
   mpTime m_TimeRunning;
 
   /// Number of elements to be processed.
-  const cl_int N = 512;
+  const cl_int N = 1024;
 
   /// The number of elements that can be processed by a single work group.
   const cl_int blockSize = 512;
@@ -164,7 +164,7 @@ class Main : public mpApplication
     inputData                  = new cl_int[N];
     outputData_CPU_Naive       = new cl_int[N];
     outputData_CPU_UpDownSweep = new cl_int[N];
-    outputData_GPU             = new cl_int[N + blockSize * 2]; /// Allocate enough for the worst case.
+    outputData_GPU             = new cl_int[N + blockSize]; /// Allocate enough for the worst case.
   }
 
   virtual void PreShutdown() override
@@ -256,7 +256,7 @@ class Main : public mpApplication
                              (N / blockSize) + 1;
 
       const auto numItems   = numBlocks * blockSize;
-      const auto numThreads = numItems / 2;
+      const auto numThreads = numItems / 2; // Every thread processes 2 items.
 
       size_t globalWorkSize[] = { numThreads };
       size_t localWorkSize[]  = { blockSize / 2 };
