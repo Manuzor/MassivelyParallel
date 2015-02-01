@@ -31,6 +31,12 @@ void CalcPrefixSum(mpArrayPtr<Type> in_Data, mpArrayPtr<Type> out_Data)
 
 namespace RadixSort
 {
+  template<typename Type>
+  inline unsigned char GetSingleByte(Type value, Type shiftAmount)
+  {
+    return (unsigned char)((value << shiftAmount) & 255);
+  }
+
   void CountValues(mpArrayPtr<cl_int> data,
                    cl_int byteNr,
                    cl_int* counts)
@@ -40,20 +46,22 @@ namespace RadixSort
     auto shiftAmount = byteNr * 8; // 1 byte = 8 bits => multiply by 8.
     for (cl_int i = 0; i < data.m_uiCount; ++i)
     {
-      auto val = (data[i] >> shiftAmount) & 255;
-      ++counts[val];
+      auto byte = GetSingleByte(data[i], shiftAmount);
+      ++counts[byte];
     }
   }
 
-  void InsertSorted(mpArrayPtr<cl_int> source, mpArrayPtr<cl_int> destination,
-                    cl_int* prefix, cl_int byteNr)
+  void InsertSorted(mpArrayPtr<cl_int> source,
+                    mpArrayPtr<cl_int> destination,
+                    cl_int* prefix,
+                    cl_int byteNr)
   {
     auto shiftAmount = byteNr * 8; // 1 byte = 8 bits => multiply by 8.
 
     for(cl_int i = 0; i < source.m_uiCount; ++i)
     {
-      auto val = (source[i] >> shiftAmount) & 255; // Only look at 1 byte.
-      auto& index = prefix[val];
+      auto byte = GetSingleByte(source[i], shiftAmount);
+      auto& index = prefix[byte];
       destination[index] = source[i];
       ++index;
     }
@@ -64,7 +72,7 @@ namespace RadixSort
   template<typename Type>
   void LSD(mpArrayPtr<Type> data)
   {
-    MP_LogBlock("MSD");
+    MP_LogBlock("LSD");
 
     auto temp = new cl_int[data.m_uiCount];
     cl_int counts[256];
@@ -124,11 +132,15 @@ class Main : public mpApplication
 
   mpPlatform Platform;
   mpDevice Device;
-
   mpContext Context;
   mpCommandQueue Queue;
+
   mpProgram Program_PrefixSum;
   mpKernel Kernel_PrefixSum;
+
+  mpProgram Program_RadixSort;
+  mpKernel Kernel_CalcStatistics;
+  mpKernel Kernel_ReduceStatistics;
 
   virtual void PostStartup() override
   {
@@ -157,20 +169,23 @@ class Main : public mpApplication
 
     // Prepare input data.
     //////////////////////////////////////////////////////////////////////////
+    // Basically shift all data by half to the right.
+    // Example: { 0, 1, 2, 3 } => { 2, 3, 0, 1 }
     for (size_t i = 0; i < N; ++i)
     {
       inputData[i] = (i + N/2) % N;
+      //inputData[i] = 1;
     }
 
     {
       MP_LogBlock("Input Data");
-      //PrintData(mpMakeArrayPtr(inputData, N));
+      PrintData(mpMakeArrayPtr(inputData, N));
     }
 
     // Process data.
     //////////////////////////////////////////////////////////////////////////
-    CPU(inputData);
-    //GPU(inputData);
+    //CPU(inputData);
+    GPU(inputData);
 
     return Quit;
   }
@@ -186,7 +201,6 @@ class Main : public mpApplication
       MP_Profile("CPU");
 
       RadixSort::LSD(mpMakeArrayPtr(outputData_CPU, N));
-      //Hahn::radixsort((int*)outputData_CPU, (int)N);
     }
     PrintData(mpMakeArrayPtr(outputData_CPU, N));
   }
@@ -199,11 +213,15 @@ class Main : public mpApplication
       MP_Profile("Initialization");
       Platform.Initialize();
       Device = mpDevice::GetGPU(Platform, 0);
-
       Context.Initialize(Device);
       Queue.Initialize(Context, Device);
+
       MP_Verify(Program_PrefixSum.LoadAndBuild(Context, Device, "Kernels/PrefixSum256.cl"));
       Kernel_PrefixSum.Initialize(Queue, Program_PrefixSum, "PrefixSum");
+
+      MP_Verify(Program_RadixSort.LoadAndBuild(Context, Device, "Kernels/RadixSort.cl"));
+      Kernel_CalcStatistics.Initialize(Queue, Program_RadixSort, "CalcStatistics");
+      Kernel_ReduceStatistics.Initialize(Queue, Program_RadixSort, "ReduceStatistics");
     }
 
     mpBuffer inputBuffer;
@@ -215,21 +233,43 @@ class Main : public mpApplication
                             mpBufferFlags::ReadWrite,
                             mpMakeArrayPtr(outputData_GPU, N));
 
-    CalcPrefixSum256(inputBuffer, outputBuffer);
+    const cl_int globalWorkSize  = ((N + 8191) / 8192) * 32;
+    const cl_int localWorkSize   = 32;
+    const cl_int numWorkGroups   = globalWorkSize / localWorkSize;
+    const cl_int statisticsCount = numWorkGroups * 256;
+    mpBuffer statisticsBuffer;
+    statisticsBuffer.Initialize(Context,
+                                mpBufferFlags::WriteOnly,
+                                statisticsCount * sizeof(cl_int));
 
-    outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
+    if(false)
+    {
+      MP_LogBlock("Prefix Sum (GPU)");
+
+      Kernel_PrefixSum.PushArg(inputBuffer);
+      Kernel_PrefixSum.PushArg(outputBuffer);
+      Kernel_PrefixSum.Execute(128);
+    }
+
+    {
+      MP_LogBlock("Calc Statistics (GPU)");
+
+      mpLog::Info("Global Work Size: %u", globalWorkSize);
+      mpLog::Info("Local Work Size:  %u", localWorkSize);
+      mpLog::Info("Num Work Groups:  %u", numWorkGroups);
+
+      for (cl_int byteNr = 0; byteNr < 4; ++byteNr)
+      {
+        Kernel_CalcStatistics.PushArg(inputBuffer);
+        Kernel_CalcStatistics.PushArg(N);
+        Kernel_CalcStatistics.PushArg(byteNr);
+        Kernel_CalcStatistics.PushArg(statisticsBuffer);
+        Kernel_CalcStatistics.Execute(globalWorkSize, localWorkSize);
+      }
+    }
+
+    statisticsBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
     PrintData(mpMakeArrayPtr(outputData_GPU, N));
-  }
-
-  /// \brief Calculates the prefix sum for arrays of size 256 using 128 threads.
-  void CalcPrefixSum256(mpBuffer& inputBuffer, mpBuffer& outputBuffer)
-  {
-    MP_LogBlock("Prefix Sum (GPU)");
-
-    Kernel_PrefixSum.PushArg(inputBuffer);
-    Kernel_PrefixSum.PushArg(outputBuffer);
-    Kernel_PrefixSum.PushArg(mpLocalMemory<cl_int>(N));
-    Kernel_PrefixSum.Execute(128);
   }
 };
 

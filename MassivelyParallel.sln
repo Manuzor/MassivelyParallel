@@ -17,6 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kernels", "Kernels", "{920C
 		Kernels\MatrixSingleThreaded.cl = Kernels\MatrixSingleThreaded.cl
 		Kernels\PrefixSum.cl = Kernels\PrefixSum.cl
 		Kernels\PrefixSum256.cl = Kernels\PrefixSum256.cl
+		Kernels\RadixSort.cl = Kernels\RadixSort.cl
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assignments", "Assignments", "{590C115A-E042-4651-962E-A04F5DB9AB66}"

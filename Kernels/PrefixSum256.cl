@@ -78,19 +78,20 @@ void DownSweep256(local int* cache)
 /// Calculates the prefix sum for the given \a data using the up-sweep and down-sweep techniques.
 /// \note Size of \a cache must be 256 * sizeof(int).
 /// \note Terminates with a barrier.
-kernel void PrefixSum(global int* in, global int* out, local int* cache)
+kernel void PrefixSum(global int* in, global int* out)
 {
   // Preparation
   //////////////////////////////////////////////////////////////////////////
+  local int cache[256];
+
   // Copy data from global memory to local memory.
   cache[LX]       = in[LX];
   cache[LX + 128] = in[LX + 128];
   barrier(CLK_LOCAL_MEM_FENCE);
-  return;
 
   // Up- and down sweep.
   //////////////////////////////////////////////////////////////////////////
-  //UpSweep256(cache);
+  UpSweep256(cache);
 
   // Set the last value in the cache to 0 (required by the algorithm).
   if(LX == 0)
@@ -98,7 +99,7 @@ kernel void PrefixSum(global int* in, global int* out, local int* cache)
   // Let all threads wait for local thread #0 before continuing.
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  //DownSweep256(cache);
+  DownSweep256(cache);
 
   // Finalization
   //////////////////////////////////////////////////////////////////////////
