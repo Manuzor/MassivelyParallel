@@ -65,27 +65,37 @@ kernel void CalcStatistics(global int* in, int size, int byteNr, global int* out
   //////////////////////////////////////////////////////////////////////////
   for(int i = 0; i < 256; i++)
   {
-    int myLocalCount = counts[LX * 256 + i];
-    global int* targetAddress = out + i; // == &out[i]
+    int localCount = counts[LX * 256 + i];
+    global int* targetAddress = out + i;
 
-    // Add my local count to the current count at target address.
-    atomic_add(targetAddress, myLocalCount);
+    // Add the local count to the current count at target address.
+    atomic_add(targetAddress, localCount);
   }
 }
 
-kernel void ReduceStatistics(global int* pBegin, int size)
+/// \brief Will reduce the given data, divided in sections of LN, to the first section of data.
+///
+/// \pre should work for any work size but LN == 256 is expected.
+/// \pre size of cache == LN
+/// \param sectionCount The number of sections to reduce.
+kernel void ReduceStatistics(global int* data, int sectionCount, local int* cache)
 {
-  // Expecting LN = 256 but should work for any work size.
+  // If there is only 1 * LN entries in data, we don't have to do anything.
+  if(sectionCount <= 1)
+    return;
 
-  global int* pEnd  = MIN(pBegin + LN, pBegin + size);
-  global int* pData = pBegin + get_group_id(0) * LN;
-  int sum = 0;
+  // Copy LN entries of data to the local cache.
+  //////////////////////////////////////////////////////////////////////////
+  cache[LX] = data[LX];
 
-  while(pData < pEnd)
+  // Copy LN entries of data to the local cache.
+  //////////////////////////////////////////////////////////////////////////
+  for(int i = 1; i < sectionCount; i++)
   {
-    sum += *pData;
-    pData += LN;
+    cache[LX] += data[LX + i * LN];
   }
 
-  pData[LX] = sum;
+  // Copy cached results back to global memory.
+  //////////////////////////////////////////////////////////////////////////
+  data[LX] = cache[LX];
 }
