@@ -240,6 +240,11 @@ class Main : public mpApplication
       Kernel_ReduceStatistics.Initialize(Queue, Program_RadixSort, "ReduceStatistics");
     }
 
+    const cl_int numWorkItems  = 32;
+    const cl_int perWorkItem   = 256;
+    const cl_int perWorkGroup  = perWorkItem * numWorkItems;
+    const cl_int numWorkGroups = ((N + perWorkGroup - 1) / perWorkGroup);
+
     mpBuffer inputBuffer;
     inputBuffer.Initialize(Context,
                            mpBufferFlags::ReadOnly,
@@ -250,22 +255,24 @@ class Main : public mpApplication
                             mpBufferFlags::ReadWrite,
                             256 * sizeof(cl_int));
 
-    Kernel_CalcStatistics.PushArg(inputBuffer);
-    Kernel_CalcStatistics.PushArg(cl_int(N));
-    Kernel_CalcStatistics.PushArg(cl_int(0));
-    Kernel_CalcStatistics.PushArg(outputBuffer);
-    Kernel_CalcStatistics.PushArg(mpLocalMemory<cl_int>(32 * 256));
-    Kernel_CalcStatistics.Execute(32);
+    {
+      Kernel_CalcStatistics.PushArg(inputBuffer);
+      Kernel_CalcStatistics.PushArg(cl_int(N));
+      Kernel_CalcStatistics.PushArg(cl_int(0));
+      Kernel_CalcStatistics.PushArg(outputBuffer);
+      Kernel_CalcStatistics.PushArg(mpLocalMemory<cl_int>(perWorkGroup));
+      Kernel_CalcStatistics.Execute(numWorkGroups * numWorkItems, numWorkItems);
 
-    Kernel_ReduceStatistics.PushArg(outputBuffer);
-    Kernel_ReduceStatistics.PushArg(cl_int(1));
-    Kernel_ReduceStatistics.PushArg(mpLocalMemory<cl_int>(256));
-    Kernel_ReduceStatistics.Execute(256);
+      Kernel_ReduceStatistics.PushArg(outputBuffer);
+      Kernel_ReduceStatistics.PushArg(numWorkGroups);
+      Kernel_ReduceStatistics.PushArg(mpLocalMemory<cl_int>(numWorkGroups * 256));
+      Kernel_ReduceStatistics.Execute(256);
+    }
 
-    cl_int counts[256];
-    outputBuffer.ReadInto(mpMakeArrayPtr(counts), Queue);
+    cl_int result[256];
+    outputBuffer.ReadInto(mpMakeArrayPtr(result), Queue);
 
-    PrintData(mpMakeArrayPtr(counts));
+    PrintData(mpMakeArrayPtr(result));
   }
 };
 
