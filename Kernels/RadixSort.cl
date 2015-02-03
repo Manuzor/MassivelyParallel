@@ -97,30 +97,34 @@ kernel void ReduceStatistics(global int* data, int sectionCount)
   data[LX] = sum;
 }
 
-kernel void InsertSorted(global int* data, global int* destination, int size, global int* prefixSums, int byteNr)
+kernel void InsertSorted(global int* source, global int* destination, int size,
+                         global int* prefixSums,
+                         int byteNr,
+                         local int* indices)
 {
-  local int indices[256];
-
   // Copy from global to local memory.
   //////////////////////////////////////////////////////////////////////////
   indices[LX] = prefixSums[LX];
+
 
   // Wait for all threads to finish their copying.
   barrier(CLK_LOCAL_MEM_FENCE);
 
   // Do the actual insertion.
   //////////////////////////////////////////////////////////////////////////
-  for(int i = 0; i < LN; i++)
+  int numSteps = (size + LN - 1) / LN;
+  for(int i = 0; i < numSteps; i++)
   {
-    // Index into `data` for the current thread.
-    int srcIndex = LX + i * 256;
-    // Pointer to the destination index. This one will be inceremented later within this loop.
-    local int* pDstIndex = indices + GetSingleByte(data[srcIndex], byteNr);
+    // Index into `source` for the current thread.
+    int srcIndex = LX + i * LN;
+    if(srcIndex < size)
+    {
+      // Pointer to the destination index. This one will be inceremented later within this loop.
+      local int* pDstIndex = indices + GetSingleByte(source[srcIndex], byteNr);
 
-    // Copy from `data` to `destination`.
-    destination[*pDstIndex] = data[srcIndex];
-
-    // Increment index, because we used one up right now.
-    atomic_inc(pDstIndex);
+      // Copy from `source` to `destination`.
+      // Also increment the destination index atomically.
+      destination[atomic_inc(pDstIndex)] = source[srcIndex];
+    }
   }
 }

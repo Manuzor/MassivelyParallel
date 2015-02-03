@@ -18,3 +18,10 @@ void mpCommandQueue::Release()
   MP_Verify(clReleaseCommandQueue(m_Id));
   m_Id = nullptr;
 }
+
+void mpCommandQueue::EnqueueBarrier()
+{
+  MP_Assert(m_Id, "The mpQueue instance must be initialized!");
+
+  MP_Verify(clEnqueueBarrier(m_Id));
+}

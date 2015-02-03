@@ -71,24 +71,24 @@ namespace RadixSort
   {
     MP_LogBlock("LSD");
 
-    auto temp = new cl_int[data.m_uiCount];
+    auto swapBuffer = new cl_int[data.m_uiCount];
     cl_int counts[256];
     cl_int prefix[256];
     for (cl_int byteNr = 0; byteNr < 4; ++byteNr)
     {
       CountValues(data, byteNr, counts);
       CalcPrefixSum(mpMakeArrayPtr(counts), mpMakeArrayPtr(prefix));
-      if (byteNr % 2 == 0)
+      if (mpMath::IsEven(byteNr))
       {
-        InsertSorted(data, mpMakeArrayPtr(temp, data.m_uiCount), prefix, byteNr);
+        InsertSorted(data, mpMakeArrayPtr(swapBuffer, data.m_uiCount), prefix, byteNr);
       }
       else
       {
-        InsertSorted(mpMakeArrayPtr(temp, data.m_uiCount), data, prefix, byteNr);
+        InsertSorted(mpMakeArrayPtr(swapBuffer, data.m_uiCount), data, prefix, byteNr);
       }
     }
 
-    delete[] temp;
+    delete[] swapBuffer;
   }
 }
 
@@ -137,7 +137,7 @@ class Main : public mpApplication
   mpRandom::mpNumberGenerator m_Rand;
 
   /// Number of elements to be processed.
-  const cl_int N = 256;
+  const cl_int N = 1024;
 
   cl_int* inputData      = nullptr;
   cl_int* expectedResult = nullptr;
@@ -182,8 +182,8 @@ class Main : public mpApplication
 
   virtual QuitOrContinue Run() override
   {
-    //MP_LogLevelForScope(mpLogLevel::Success);
-    for (mpUInt32 i = 42; i < 43; ++i)
+    MP_LogLevelForScope(mpLogLevel::Success);
+    for (mpUInt32 i = 0; i < 1024; ++i)
     {
       MP_LogBlock("Random seed: %u", i);
       m_Rand.SetSeed(i);
@@ -223,7 +223,7 @@ class Main : public mpApplication
 
     // Process data on CPU.
     //////////////////////////////////////////////////////////////////////////
-    if(false)
+    if(true)
     {
       CPU(inputData);
       if(AreEqual(mpMakeArrayPtr(outputData_CPU, N), mpMakeArrayPtr(expectedResult, N)))
@@ -298,6 +298,8 @@ class Main : public mpApplication
                            mpBufferFlags::ReadWrite,
                            mpMakeArrayPtr(inputData, N));
 
+    auto localSwapBuffer = new cl_int[N];
+
     // Used by InsertSorted to swap between source and target.
     mpBuffer swapBuffer;
     swapBuffer.Initialize(Context,
@@ -308,6 +310,11 @@ class Main : public mpApplication
     outputBuffer.Initialize(Context,
                             mpBufferFlags::ReadWrite,
                             numWorkGroups * 256 * sizeof(cl_int));
+
+    mpBuffer prefixSumBuffer;
+    prefixSumBuffer.Initialize(Context,
+                               mpBufferFlags::ReadWrite,
+                               256 * sizeof(cl_int));
 
     for(cl_int byteNr = 0; byteNr < 4; ++byteNr)
     {
@@ -332,31 +339,86 @@ class Main : public mpApplication
       // Create the prefix sum of the statistics.
       //////////////////////////////////////////////////////////////////////////
       Kernel_PrefixSum.PushArg(outputBuffer); // Input.
-      Kernel_PrefixSum.PushArg(outputBuffer); // Output.
+      Kernel_PrefixSum.PushArg(prefixSumBuffer); // Output.
       Kernel_PrefixSum.Execute(128);
 
       // Insert sorted.
       //////////////////////////////////////////////////////////////////////////
-      if(mpMath::IsEven(byteNr))
+      if(true)
       {
-        Kernel_InsertSorted.PushArg(inputBuffer); // Source.
-        Kernel_InsertSorted.PushArg(swapBuffer);  // Destination.
+        if(mpMath::IsEven(byteNr))
+        {
+          Kernel_InsertSorted.PushArg(inputBuffer); // Source.
+          Kernel_InsertSorted.PushArg(swapBuffer);  // Destination.
+        }
+        else
+        {
+          Kernel_InsertSorted.PushArg(swapBuffer);  // Source.
+          Kernel_InsertSorted.PushArg(inputBuffer); // Destination.
+        }
+
+        Kernel_InsertSorted.PushArg(N);                          // Number of elements in Source/Destination.
+        Kernel_InsertSorted.PushArg(prefixSumBuffer);            // Prefix sums.
+        Kernel_InsertSorted.PushArg(byteNr);                     // Byte Nr.
+        Kernel_InsertSorted.PushArg(mpLocalMemory<cl_int>(256)); // Local indices.
+        Kernel_InsertSorted.Execute(32);
+        // FIXME ^ Should be called with 256 threads.
+
+        Queue.EnqueueBarrier();
       }
-      else
+      else // Note: This is used for debugging purposes only.
       {
-        Kernel_InsertSorted.PushArg(swapBuffer);  // Source.
-        Kernel_InsertSorted.PushArg(inputBuffer); // Destination.
+        // Sequential version of InsertSorted.
+        //////////////////////////////////////////////////////////////////////////
+        // Copy from GPU memory.
+        // =====================
+        cl_int prefix[256];
+        prefixSumBuffer.ReadInto(mpMakeArrayPtr(prefix), Queue);
+        {
+          MP_LogBlock("Prefix sums (Byte #%d", byteNr);
+          PrintData(mpMakeArrayPtr(prefix));
+        }
+
+        inputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
+        swapBuffer.ReadInto(mpMakeArrayPtr(localSwapBuffer, N), Queue);
+
+        // Do the insertion.
+        // =================
+        if (mpMath::IsEven(byteNr))
+        {
+          RadixSort::InsertSorted(mpMakeArrayPtr(outputData_GPU, N), mpMakeArrayPtr(localSwapBuffer, N),
+                                  prefix, byteNr);
+        }
+        else
+        {
+          RadixSort::InsertSorted(mpMakeArrayPtr(localSwapBuffer, N), mpMakeArrayPtr(outputData_GPU, N),
+                                  prefix, byteNr);
+        }
+
+        // Re-create buffers and copy results back to GPU memory.
+        // ======================================================
+        inputBuffer.Release();
+        swapBuffer.Release();
+
+        inputBuffer.Initialize(Context, mpBufferFlags::ReadWrite, mpMakeArrayPtr(outputData_GPU, N));
+        swapBuffer.Initialize(Context, mpBufferFlags::ReadWrite, mpMakeArrayPtr(localSwapBuffer, N));
       }
 
-      Kernel_InsertSorted.PushArg(N);            // Number of elements in Source/Destination.
-      Kernel_InsertSorted.PushArg(outputBuffer); // Prefix sums.
-      Kernel_InsertSorted.PushArg(byteNr);       // Byte Nr.
-      Kernel_InsertSorted.Execute(256);
+      //{
+      //  MP_LogBlock("Input buffer (Byte #%d)", byteNr);
+      //  inputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
+      //  PrintData(mpMakeArrayPtr(outputData_GPU, N));
+      //}
+      //
+      //{
+      //  MP_LogBlock("Swap buffer (Byte #%d)", byteNr);
+      //  swapBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
+      //  PrintData(mpMakeArrayPtr(outputData_GPU, N));
+      //}
     }
 
-    cl_int result[256];
-    outputBuffer.ReadInto(mpMakeArrayPtr(result), Queue);
-    PrintData(mpMakeArrayPtr(result));
+    inputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
+    PrintData(mpMakeArrayPtr(outputData_GPU, N));
   }
 };
 
