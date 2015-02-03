@@ -38,7 +38,7 @@ void UpSweep512(local int* cache)
       cache[index] += cache[other];
     }
 
-    // Wait forall other threads to finish their iteration
+    // Wait for all other threads to finish their iteration
     barrier(CLK_LOCAL_MEM_FENCE);
   }
 }
@@ -73,7 +73,7 @@ void DownSweep512(local int* cache)
       cache[other] = previous;
     }
 
-    // Wait forall other threads to finish their iteration
+    // Wait for all other threads to finish their iteration
     barrier(CLK_LOCAL_MEM_FENCE);
   }
 }

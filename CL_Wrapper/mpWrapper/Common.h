@@ -28,6 +28,7 @@ namespace mpInternal
 #define MP_OnScopeExit mpInternal::OnScopeExit<std::function<void()>> MP_Concat(_scopeExit_, __LINE__) = [&]
 
 #define MP_Min(lhs, rhs) ((lhs) < (rhs) ? (lhs) : (rhs))
+#define MP_Max(lhs, rhs) ((lhs) > (rhs) ? (lhs) : (rhs))
 
 #include "mpWrapper/Common/Result.h"
 #include "mpWrapper/Common/Error.h"

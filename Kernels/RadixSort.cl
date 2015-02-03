@@ -18,9 +18,21 @@ inline uchar GetSingleByte(int value, int byteNr)
   return (value >> (byteNr * 8)) & 0xFF;
 }
 
-// Assuming counts = int[32][256] = int[8192]
-kernel void CalcStatistics(global int* data, const int size, int byteNr, global int* out, local int* counts)
+/// \pre counts == int[32][256] == int[8192]
+kernel void CalcStatistics(global int* data, int size, int byteNr, global int* out, local int* counts)
 {
+  // Compute the correct offset for the current thread group.
+  //////////////////////////////////////////////////////////////////////////
+  {
+    // All work items will look at 256 items (or less, if their index is out of bounds).
+    // For LN = 32 => offset = groupID * 32 * 256 = groupID * 8192
+    // Also, if size <= 8192 => maxGroupID = 0 => offset = 0
+    int offset = get_group_id(0) * LN * 256;
+    data += offset;
+    size += offset;
+    out  += get_group_id(0) * 256;
+  }
+
   // Initialize `counts` to 0.
   //////////////////////////////////////////////////////////////////////////
   for(int i = 0; i < 256; i++)
@@ -30,9 +42,9 @@ kernel void CalcStatistics(global int* data, const int size, int byteNr, global 
 
   // Initialize `out` to 0.
   //////////////////////////////////////////////////////////////////////////
-  for(int i = 0; i < 8; i++)
+  for(int i = 0; i < 256 / LN; i++)
   {
-    const int index = LX + 32 * i;
+    const int index = LX + LN * i;
     out[index] = 0;
   }
 
@@ -75,10 +87,11 @@ kernel void CalcStatistics(global int* data, const int size, int byteNr, global 
 
 /// \brief Will reduce the given data, divided in sections of LN, to the first section of data.
 ///
-/// \pre should work for any work size but LN == 256 is expected.
+/// \param sectionCount The number of sections to reduce.
+///
 /// \pre size of cache == LN
 /// \pre sectionCount > 1
-/// \param sectionCount The number of sections to reduce.
+/// \remark should work for any work size but LN == 256 is expected.
 kernel void ReduceStatistics(global int* data, int sectionCount)
 {
   // Initialze the accumulation variable for the local thread.
@@ -87,9 +100,9 @@ kernel void ReduceStatistics(global int* data, int sectionCount)
 
   // Accumulate all results in `sum`.
   //////////////////////////////////////////////////////////////////////////
-  for(int i = 0; i < sectionCount; i++)
+  for(int i = 0; i < sectionCount; ++i)
   {
-    sum += data[LX + i * LN];
+    sum += data[LX + i * 256];
   }
 
   // Copy result `sum` back to global memory.
@@ -112,11 +125,11 @@ kernel void InsertSorted(global int* source, global int* destination, int size,
 
   // Do the actual insertion.
   //////////////////////////////////////////////////////////////////////////
-  int numSteps = (size + LN - 1) / LN;
+  const int numSteps = (size + LN - 1) / LN;
   for(int i = 0; i < numSteps; i++)
   {
     // Index into `source` for the current thread.
-    int srcIndex = LX + i * LN;
+    const int srcIndex = LX + i * LN;
     if(srcIndex < size)
     {
       // Pointer to the destination index. This one will be inceremented later within this loop.
