@@ -13,13 +13,13 @@
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
-inline uchar GetSingleByte(int value, int shiftAmount)
+inline uchar GetSingleByte(int value, int byteNr)
 {
-  return (value >> shiftAmount) & 0xFF;
+  return (value >> (byteNr * 8)) & 0xFF;
 }
 
 // Assuming counts = int[32][256] = int[8192]
-kernel void CalcStatistics(global int* in, int size, int byteNr, global int* out, local int* counts)
+kernel void CalcStatistics(global int* data, const int size, int byteNr, global int* out, local int* counts)
 {
   // Initialize `counts` to 0.
   //////////////////////////////////////////////////////////////////////////
@@ -32,7 +32,7 @@ kernel void CalcStatistics(global int* in, int size, int byteNr, global int* out
   //////////////////////////////////////////////////////////////////////////
   for(int i = 0; i < 8; i++)
   {
-    int index = LX + 32 * i;
+    const int index = LX + 32 * i;
     out[index] = 0;
   }
 
@@ -53,10 +53,10 @@ kernel void CalcStatistics(global int* in, int size, int byteNr, global int* out
     // 31 + 32 * 2   = 95
     // ...
     // 31 + 32 * 255 = 8191
-    int index = LX + 32 * i;
+    const int index = LX + 32 * i;
     if(index < size)
     {
-      uchar byte = GetSingleByte(in[index], byteNr * 8);
+      uchar byte = GetSingleByte(data[index], byteNr);
       counts[LX * 256 + byte]++;
     }
   }
@@ -65,7 +65,7 @@ kernel void CalcStatistics(global int* in, int size, int byteNr, global int* out
   //////////////////////////////////////////////////////////////////////////
   for(int i = 0; i < 256; i++)
   {
-    int localCount = counts[LX * 256 + i];
+    const int localCount = counts[LX * 256 + i];
     global int* targetAddress = out + i;
 
     // Add the local count to the current count at target address.
@@ -77,25 +77,50 @@ kernel void CalcStatistics(global int* in, int size, int byteNr, global int* out
 ///
 /// \pre should work for any work size but LN == 256 is expected.
 /// \pre size of cache == LN
+/// \pre sectionCount > 1
 /// \param sectionCount The number of sections to reduce.
-kernel void ReduceStatistics(global int* data, int sectionCount, local int* cache)
+kernel void ReduceStatistics(global int* data, int sectionCount)
 {
-  // If there is only 1 * LN entries in data, we don't have to do anything.
-  if(sectionCount <= 1)
-    return;
-
-  // Copy LN entries of data to the local cache.
+  // Initialze the accumulation variable for the local thread.
   //////////////////////////////////////////////////////////////////////////
-  cache[LX] = data[LX];
+  int sum = 0;
 
-  // Copy LN entries of data to the local cache.
+  // Accumulate all results in `sum`.
   //////////////////////////////////////////////////////////////////////////
-  for(int i = 1; i < sectionCount; i++)
+  for(int i = 0; i < sectionCount; i++)
   {
-    cache[LX] += data[LX + i * LN];
+    sum += data[LX + i * LN];
   }
 
-  // Copy cached results back to global memory.
+  // Copy result `sum` back to global memory.
   //////////////////////////////////////////////////////////////////////////
-  data[LX] = cache[LX];
+  data[LX] = sum;
+}
+
+kernel void InsertSorted(global int* data, global int* destination, int size, global int* prefixSums, int byteNr)
+{
+  local int indices[256];
+
+  // Copy from global to local memory.
+  //////////////////////////////////////////////////////////////////////////
+  indices[LX] = prefixSums[LX];
+
+  // Wait for all threads to finish their copying.
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  // Do the actual insertion.
+  //////////////////////////////////////////////////////////////////////////
+  for(int i = 0; i < LN; i++)
+  {
+    // Index into `data` for the current thread.
+    int srcIndex = LX + i * 256;
+    // Pointer to the destination index. This one will be inceremented later within this loop.
+    local int* pDstIndex = indices + GetSingleByte(data[srcIndex], byteNr);
+
+    // Copy from `data` to `destination`.
+    destination[*pDstIndex] = data[srcIndex];
+
+    // Increment index, because we used one up right now.
+    atomic_inc(pDstIndex);
+  }
 }

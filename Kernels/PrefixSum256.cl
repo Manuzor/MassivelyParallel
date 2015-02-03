@@ -76,8 +76,7 @@ void DownSweep256(local int* cache)
 }
 
 /// Calculates the prefix sum for the given \a data using the up-sweep and down-sweep techniques.
-/// \note Size of \a cache must be 256 * sizeof(int).
-/// \note Terminates with a barrier.
+/// \remark Terminates with a barrier.
 kernel void PrefixSum(global int* in, global int* out)
 {
   // Preparation

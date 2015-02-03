@@ -44,11 +44,13 @@ namespace mpRandom
     MP_ForceInline void Reset() { SetSeed(GetSeed()); }
 
     template<typename NumberType>
+    /// \brief Generates a random number in the range of [\a Min, \a Max).
     NumberType Generate(NumberType Min, NumberType Max)
     {
       return Generate(mpRange<NumberType>{ Min, Max });
     }
 
+    /// \brief Generates a random number in the range of [\a Range.m_Min, \a Range.m_Max).
     template<typename NumberType>
     NumberType Generate(mpRange<NumberType> Range)
     {

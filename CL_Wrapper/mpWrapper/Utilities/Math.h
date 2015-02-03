@@ -100,4 +100,20 @@ namespace mpMath
 
     return ((x & (x - 1)) == 0);
   }
+
+  template<typename Type> MP_ForceInline
+  bool IsEven(Type x)
+  {
+    static_assert(std::is_integral<Type>::value, "Only integers (long, etc.) can be checked for being even.");
+    // If the first bit is 0, x is even.
+    return (x & 1) == 0;
+  }
+
+  template<typename Type> MP_ForceInline
+  bool IsOdd(Type x)
+  {
+    static_assert(std::is_integral<Type>::value, "Only integers (long, etc.) can be checked for being odd.");
+    // If the first bit is 0, x is even.
+    return (x & 1) != 0;
+  }
 }

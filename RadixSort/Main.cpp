@@ -32,9 +32,9 @@ void CalcPrefixSum(mpArrayPtr<Type> in_Data, mpArrayPtr<Type> out_Data)
 namespace RadixSort
 {
   template<typename Type>
-  inline unsigned char GetSingleByte(Type value, Type shiftAmount)
+  inline unsigned char GetSingleByte(Type value, Type byteNr)
   {
-    return (unsigned char)((value >> shiftAmount) & 0xFF);
+    return (unsigned char)((value >> (byteNr * 8)) & 0xFF);
   }
 
   void CountValues(mpArrayPtr<cl_int> data,
@@ -43,10 +43,9 @@ namespace RadixSort
   {
     memset(counts, 0, 256 * sizeof(cl_int));
 
-    auto shiftAmount = byteNr * 8; // 1 byte = 8 bits => multiply by 8.
     for (cl_int i = 0; i < data.m_uiCount; ++i)
     {
-      auto byte = GetSingleByte(data[i], shiftAmount);
+      auto byte = GetSingleByte(data[i], byteNr);
       ++counts[byte];
     }
   }
@@ -56,11 +55,9 @@ namespace RadixSort
                     cl_int* prefix,
                     cl_int byteNr)
   {
-    auto shiftAmount = byteNr * 8; // 1 byte = 8 bits => multiply by 8.
-
     for(cl_int i = 0; i < source.m_uiCount; ++i)
     {
-      auto byte = GetSingleByte(source[i], shiftAmount);
+      auto byte = GetSingleByte(source[i], byteNr);
       auto& index = prefix[byte];
       destination[index] = source[i];
       ++index;
@@ -117,14 +114,33 @@ void PrintData(mpArrayPtr<Type> Data, const size_t uiWidth = 10)
   }
 }
 
+template<typename Type>
+static bool AreEqual(mpArrayPtr<Type> lhs, mpArrayPtr<Type> rhs)
+{
+  if (lhs.m_uiCount != rhs.m_uiCount)
+    return false;
+
+  for (size_t i = 0; i < lhs.m_uiCount; ++i)
+  {
+    // Note: we circumvent bounds checking here because it is not necessary.
+    if (lhs.m_Data[i] != rhs.m_Data[i])
+      return false;
+  }
+
+  return true;
+}
+
 class Main : public mpApplication
 {
   mpTime m_TimeRunning;
+
+  mpRandom::mpNumberGenerator m_Rand;
 
   /// Number of elements to be processed.
   const cl_int N = 256;
 
   cl_int* inputData      = nullptr;
+  cl_int* expectedResult = nullptr;
   cl_int* outputData_CPU = nullptr;
   cl_int* outputData_GPU = nullptr;
 
@@ -139,12 +155,14 @@ class Main : public mpApplication
   mpProgram Program_RadixSort;
   mpKernel Kernel_CalcStatistics;
   mpKernel Kernel_ReduceStatistics;
+  mpKernel Kernel_InsertSorted;
 
   virtual void PostStartup() override
   {
     m_TimeRunning = mpTime::Now();
 
     inputData      = new cl_int[N];
+    expectedResult = new cl_int[N];
     outputData_CPU = new cl_int[N];
     outputData_GPU = new cl_int[N];
   }
@@ -153,6 +171,7 @@ class Main : public mpApplication
   {
     delete[] outputData_GPU;
     delete[] outputData_CPU;
+    delete[] expectedResult;
     delete[] inputData;
 
     auto tElapsedTime = mpTime::Now() - m_TimeRunning;
@@ -163,16 +182,30 @@ class Main : public mpApplication
 
   virtual QuitOrContinue Run() override
   {
+    //MP_LogLevelForScope(mpLogLevel::Success);
+    for (mpUInt32 i = 42; i < 43; ++i)
+    {
+      MP_LogBlock("Random seed: %u", i);
+      m_Rand.SetSeed(i);
+      Work();
+    }
+
+    return Quit;
+  }
+
+  void Work()
+  {
     mpLog::Info("N = %u", N);
 
     // Prepare input data.
     //////////////////////////////////////////////////////////////////////////
-    // Basically shift all data by half to the right.
-    // Example: { 0, 1, 2, 3 } => { 2, 3, 0, 1 }
     for (size_t i = 0; i < N; ++i)
     {
-      inputData[i] = ((i + N/2) % N);
+      //inputData[i] = ((i + N/2) % N);
       //inputData[i] = 1;
+
+      // Random value in range of [0, N).
+      inputData[i] = m_Rand.Generate<cl_int>(0, N);
     }
 
     {
@@ -180,19 +213,42 @@ class Main : public mpApplication
       PrintData(mpMakeArrayPtr(inputData, N));
     }
 
-    // Process data.
-    //////////////////////////////////////////////////////////////////////////
-    CPU(inputData);
-    GPU(inputData);
+    memcpy(expectedResult, inputData, N * sizeof(cl_int));
+    std::sort(expectedResult, expectedResult + N);
 
-    return Quit;
+    {
+      MP_LogBlock("Expected Result");
+      PrintData(mpMakeArrayPtr(expectedResult, N));
+    }
+
+    // Process data on CPU.
+    //////////////////////////////////////////////////////////////////////////
+    if(false)
+    {
+      CPU(inputData);
+      if(AreEqual(mpMakeArrayPtr(outputData_CPU, N), mpMakeArrayPtr(expectedResult, N)))
+        mpLog::Success("CPU result is correct!");
+      else
+        mpLog::Error("CPU result is incorrect!");
+    }
+
+    // Process data on GPU.
+    //////////////////////////////////////////////////////////////////////////
+    if(true)
+    {
+      GPU(inputData);
+      if(AreEqual(mpMakeArrayPtr(outputData_GPU, N), mpMakeArrayPtr(expectedResult, N)))
+        mpLog::Success("GPU result is correct!");
+      else
+        mpLog::Error("GPU result is incorrect!");
+    }
   }
 
   void CPU(const cl_int* inputData)
   {
     MP_LogBlock("CPU");
 
-    // Copy the input data and sort it.
+    // Copy the input data to our own buffer and sort it there.
     memcpy(outputData_CPU, inputData, N * sizeof(cl_int));
     cl_int counts[256];
     memset(counts, 0, sizeof(counts));
@@ -201,21 +257,10 @@ class Main : public mpApplication
       mpLog::Info("Running...");
       MP_Profile("CPU");
 
-      //RadixSort::LSD(mpMakeArrayPtr(outputData_CPU, N));
-      cl_int tmp[256];
-      for (cl_int byteNr = 0; byteNr < 2; ++byteNr)
-      {
-        RadixSort::CountValues(mpMakeArrayPtr(const_cast<cl_int*>(inputData), N), byteNr, tmp);
-        // Copy results.
-        for (cl_int i = 0; i < 256; ++i)
-        {
-          counts[i] += tmp[i];
-        }
-      }
+      RadixSort::LSD(mpMakeArrayPtr(outputData_CPU, N));
     }
 
-    //PrintData(mpMakeArrayPtr(outputData_CPU, N));
-    PrintData(mpMakeArrayPtr(counts));
+    PrintData(mpMakeArrayPtr(outputData_CPU, N));
   }
 
   void GPU(const cl_int* inputData)
@@ -223,9 +268,6 @@ class Main : public mpApplication
     MP_LogBlock("GPU");
 
     {
-      // Disable logging for this block for now.
-      MP_LogLevelForScope(mpLogLevel::Warning);
-
       MP_Profile("Initialization");
       Platform.Initialize();
       Device = mpDevice::GetGPU(Platform, 0);
@@ -238,6 +280,7 @@ class Main : public mpApplication
       MP_Verify(Program_RadixSort.LoadAndBuild(Context, Device, "Kernels/RadixSort.cl"));
       Kernel_CalcStatistics.Initialize(Queue, Program_RadixSort, "CalcStatistics");
       Kernel_ReduceStatistics.Initialize(Queue, Program_RadixSort, "ReduceStatistics");
+      Kernel_InsertSorted.Initialize(Queue, Program_RadixSort, "InsertSorted");
     }
 
     const cl_int numWorkItems  = 32;
@@ -245,33 +288,74 @@ class Main : public mpApplication
     const cl_int perWorkGroup  = perWorkItem * numWorkItems;
     const cl_int numWorkGroups = ((N + perWorkGroup - 1) / perWorkGroup);
 
+    mpLog::Info("Number of Work Items:  %d", numWorkItems);
+    mpLog::Info("Per Work Item:         %d", perWorkItem);
+    mpLog::Info("Number of Work Groups: %d", numWorkGroups);
+    mpLog::Info("Per Work Group:        %d", perWorkGroup);
+
     mpBuffer inputBuffer;
     inputBuffer.Initialize(Context,
-                           mpBufferFlags::ReadOnly,
+                           mpBufferFlags::ReadWrite,
                            mpMakeArrayPtr(inputData, N));
+
+    // Used by InsertSorted to swap between source and target.
+    mpBuffer swapBuffer;
+    swapBuffer.Initialize(Context,
+                          mpBufferFlags::ReadWrite,
+                          N * sizeof(cl_int));
 
     mpBuffer outputBuffer;
     outputBuffer.Initialize(Context,
                             mpBufferFlags::ReadWrite,
-                            256 * sizeof(cl_int));
+                            numWorkGroups * 256 * sizeof(cl_int));
 
+    for(cl_int byteNr = 0; byteNr < 4; ++byteNr)
     {
+      // Calculate statistics.
+      //////////////////////////////////////////////////////////////////////////
       Kernel_CalcStatistics.PushArg(inputBuffer);
       Kernel_CalcStatistics.PushArg(cl_int(N));
-      Kernel_CalcStatistics.PushArg(cl_int(0));
+      Kernel_CalcStatistics.PushArg(byteNr);
       Kernel_CalcStatistics.PushArg(outputBuffer);
       Kernel_CalcStatistics.PushArg(mpLocalMemory<cl_int>(perWorkGroup));
       Kernel_CalcStatistics.Execute(numWorkGroups * numWorkItems, numWorkItems);
 
-      Kernel_ReduceStatistics.PushArg(outputBuffer);
-      Kernel_ReduceStatistics.PushArg(numWorkGroups);
-      Kernel_ReduceStatistics.PushArg(mpLocalMemory<cl_int>(numWorkGroups * 256));
-      Kernel_ReduceStatistics.Execute(256);
+      // Reduce statistics. This is only needed if numWorkGroups > 1.
+      //////////////////////////////////////////////////////////////////////////
+      if (numWorkGroups > 1)
+      {
+        Kernel_ReduceStatistics.PushArg(outputBuffer);
+        Kernel_ReduceStatistics.PushArg(numWorkGroups);
+        Kernel_ReduceStatistics.Execute(256);
+      }
+
+      // Create the prefix sum of the statistics.
+      //////////////////////////////////////////////////////////////////////////
+      Kernel_PrefixSum.PushArg(outputBuffer); // Input.
+      Kernel_PrefixSum.PushArg(outputBuffer); // Output.
+      Kernel_PrefixSum.Execute(128);
+
+      // Insert sorted.
+      //////////////////////////////////////////////////////////////////////////
+      if(mpMath::IsEven(byteNr))
+      {
+        Kernel_InsertSorted.PushArg(inputBuffer); // Source.
+        Kernel_InsertSorted.PushArg(swapBuffer);  // Destination.
+      }
+      else
+      {
+        Kernel_InsertSorted.PushArg(swapBuffer);  // Source.
+        Kernel_InsertSorted.PushArg(inputBuffer); // Destination.
+      }
+
+      Kernel_InsertSorted.PushArg(N);            // Number of elements in Source/Destination.
+      Kernel_InsertSorted.PushArg(outputBuffer); // Prefix sums.
+      Kernel_InsertSorted.PushArg(byteNr);       // Byte Nr.
+      Kernel_InsertSorted.Execute(256);
     }
 
     cl_int result[256];
     outputBuffer.ReadInto(mpMakeArrayPtr(result), Queue);
-
     PrintData(mpMakeArrayPtr(result));
   }
 };
