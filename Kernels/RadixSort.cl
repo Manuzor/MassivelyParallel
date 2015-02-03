@@ -15,41 +15,61 @@
 
 inline uchar GetSingleByte(int value, int shiftAmount)
 {
-  return (value << shiftAmount) & 255;
+  return (value >> shiftAmount) & 0xFF;
 }
 
-kernel void CalcStatistics(global int* in, int size, int byteNr, global int* out)
+// Assuming counts = int[32][256] = int[8192]
+kernel void CalcStatistics(global int* in, int size, int byteNr, global int* out, local int* counts)
 {
-  local int counts[32][256]; // 8192
-  const int shiftAmount = byteNr * 8;
-
-  // Maximum index for local thread: LX + (32 * 256) - 1 == LX + 8191
-  if(LX + 8191 < size)
+  // Initialize `counts` to 0.
+  //////////////////////////////////////////////////////////////////////////
+  for(int i = 0; i < 256; i++)
   {
-    // Initialize counts to 0.
-    for(int i = 0; i < 256; i++)
-    {
-      counts[LX][i] = 0;
-    }
+    counts[LX * 256 + i] = 0;
+  }
 
-    // Create counts for each thread.
-    for(int i = 0; i < 256; ++i)
-    {
-      uchar byte = GetSingleByte(in[LX + i * 32], shiftAmount);
-      counts[LX][byte]++;
-    }
+  // Initialize `out` to 0.
+  //////////////////////////////////////////////////////////////////////////
+  for(int i = 0; i < 8; i++)
+  {
+    int index = LX + 32 * i;
+    out[index] = 0;
+  }
 
-    // Combine thread results.
-    for(int k = 0; k < 32; k++)
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  // Count the values.
+  //////////////////////////////////////////////////////////////////////////
+  for(int i = 0; i < 256; i++)
+  {
+    // LX + 32 * i   = index
+    // ---------------------
+    //  0 + 32 * 0   = 0
+    //  0 + 32 * 1   = 32
+    //  0 + 32 * 2   = 64
+    // ...
+    // 31 + 32 * 0   = 31
+    // 31 + 32 * 1   = 63
+    // 31 + 32 * 2   = 95
+    // ...
+    // 31 + 32 * 255 = 8191
+    int index = LX + 32 * i;
+    if(index < size)
     {
-      if(LX == 0)
-        out[k] = 0;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      for(int i = 0; i < 8; i++)
-      {
-        out[k] += counts[k][LX + i * 32];
-      }
+      uchar byte = GetSingleByte(in[index], byteNr * 8);
+      counts[LX * 256 + byte]++;
     }
+  }
+
+  // Accumulate results and write to `out`.
+  //////////////////////////////////////////////////////////////////////////
+  for(int i = 0; i < 256; i++)
+  {
+    int myLocalCount = counts[LX * 256 + i];
+    global int* targetAddress = out + i; // == &out[i]
+
+    // Add my local count to the current count at target address.
+    atomic_add(targetAddress, myLocalCount);
   }
 }
 

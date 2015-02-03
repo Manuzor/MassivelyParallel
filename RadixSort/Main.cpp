@@ -34,7 +34,7 @@ namespace RadixSort
   template<typename Type>
   inline unsigned char GetSingleByte(Type value, Type shiftAmount)
   {
-    return (unsigned char)((value << shiftAmount) & 255);
+    return (unsigned char)((value >> shiftAmount) & 0xFF);
   }
 
   void CountValues(mpArrayPtr<cl_int> data,
@@ -90,8 +90,6 @@ namespace RadixSort
         InsertSorted(mpMakeArrayPtr(temp, data.m_uiCount), data, prefix, byteNr);
       }
     }
-
-    //std::sort(data.m_Data, data.m_Data + data.m_uiCount);
 
     delete[] temp;
   }
@@ -173,7 +171,7 @@ class Main : public mpApplication
     // Example: { 0, 1, 2, 3 } => { 2, 3, 0, 1 }
     for (size_t i = 0; i < N; ++i)
     {
-      inputData[i] = (i + N/2) % N;
+      inputData[i] = ((i + N/2) % N);
       //inputData[i] = 1;
     }
 
@@ -184,7 +182,7 @@ class Main : public mpApplication
 
     // Process data.
     //////////////////////////////////////////////////////////////////////////
-    //CPU(inputData);
+    CPU(inputData);
     GPU(inputData);
 
     return Quit;
@@ -196,13 +194,28 @@ class Main : public mpApplication
 
     // Copy the input data and sort it.
     memcpy(outputData_CPU, inputData, N * sizeof(cl_int));
+    cl_int counts[256];
+    memset(counts, 0, sizeof(counts));
+
     {
       mpLog::Info("Running...");
       MP_Profile("CPU");
 
-      RadixSort::LSD(mpMakeArrayPtr(outputData_CPU, N));
+      //RadixSort::LSD(mpMakeArrayPtr(outputData_CPU, N));
+      cl_int tmp[256];
+      for (cl_int byteNr = 0; byteNr < 2; ++byteNr)
+      {
+        RadixSort::CountValues(mpMakeArrayPtr(const_cast<cl_int*>(inputData), N), byteNr, tmp);
+        // Copy results.
+        for (cl_int i = 0; i < 256; ++i)
+        {
+          counts[i] += tmp[i];
+        }
+      }
     }
-    PrintData(mpMakeArrayPtr(outputData_CPU, N));
+
+    //PrintData(mpMakeArrayPtr(outputData_CPU, N));
+    PrintData(mpMakeArrayPtr(counts));
   }
 
   void GPU(const cl_int* inputData)
@@ -210,6 +223,9 @@ class Main : public mpApplication
     MP_LogBlock("GPU");
 
     {
+      // Disable logging for this block for now.
+      MP_LogLevelForScope(mpLogLevel::None);
+
       MP_Profile("Initialization");
       Platform.Initialize();
       Device = mpDevice::GetGPU(Platform, 0);
@@ -226,50 +242,25 @@ class Main : public mpApplication
 
     mpBuffer inputBuffer;
     inputBuffer.Initialize(Context,
-                            mpBufferFlags::ReadOnly,
-                            mpMakeArrayPtr(inputData, N));
+                           mpBufferFlags::ReadOnly,
+                           mpMakeArrayPtr(inputData, N));
+
     mpBuffer outputBuffer;
     outputBuffer.Initialize(Context,
-                            mpBufferFlags::ReadWrite,
-                            mpMakeArrayPtr(outputData_GPU, N));
+                            mpBufferFlags::WriteOnly,
+                            256 * sizeof(cl_int));
 
-    const cl_int globalWorkSize  = ((N + 8191) / 8192) * 32;
-    const cl_int localWorkSize   = 32;
-    const cl_int numWorkGroups   = globalWorkSize / localWorkSize;
-    const cl_int statisticsCount = numWorkGroups * 256;
-    mpBuffer statisticsBuffer;
-    statisticsBuffer.Initialize(Context,
-                                mpBufferFlags::WriteOnly,
-                                statisticsCount * sizeof(cl_int));
+    Kernel_CalcStatistics.PushArg(inputBuffer);
+    Kernel_CalcStatistics.PushArg(cl_int(N));
+    Kernel_CalcStatistics.PushArg(cl_int(0));
+    Kernel_CalcStatistics.PushArg(outputBuffer);
+    Kernel_CalcStatistics.PushArg(mpLocalMemory<cl_int>(32 * 256));
+    Kernel_CalcStatistics.Execute(32);
 
-    if(false)
-    {
-      MP_LogBlock("Prefix Sum (GPU)");
+    cl_int counts[256];
+    outputBuffer.ReadInto(mpMakeArrayPtr(counts), Queue);
 
-      Kernel_PrefixSum.PushArg(inputBuffer);
-      Kernel_PrefixSum.PushArg(outputBuffer);
-      Kernel_PrefixSum.Execute(128);
-    }
-
-    {
-      MP_LogBlock("Calc Statistics (GPU)");
-
-      mpLog::Info("Global Work Size: %u", globalWorkSize);
-      mpLog::Info("Local Work Size:  %u", localWorkSize);
-      mpLog::Info("Num Work Groups:  %u", numWorkGroups);
-
-      for (cl_int byteNr = 0; byteNr < 4; ++byteNr)
-      {
-        Kernel_CalcStatistics.PushArg(inputBuffer);
-        Kernel_CalcStatistics.PushArg(N);
-        Kernel_CalcStatistics.PushArg(byteNr);
-        Kernel_CalcStatistics.PushArg(statisticsBuffer);
-        Kernel_CalcStatistics.Execute(globalWorkSize, localWorkSize);
-      }
-    }
-
-    statisticsBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
-    PrintData(mpMakeArrayPtr(outputData_GPU, N));
+    PrintData(mpMakeArrayPtr(counts));
   }
 };
 
