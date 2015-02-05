@@ -153,7 +153,7 @@ class Main : public mpApplication
   mpTime m_TimeRunning;
 
   /// Number of elements to be processed.
-  const cl_int N = 256;
+  const cl_int N = 512;
 
   /// The number of elements that can be processed by a single work group.
   const cl_int blockSize = 512;
@@ -175,6 +175,13 @@ class Main : public mpApplication
   cl_int* outputData_CPU_Naive       = nullptr;
   cl_int* outputData_CPU_UpDownSweep = nullptr;
   cl_int* outputData_GPU             = nullptr;
+
+  mpPlatform Platform;
+  mpDevice Device;
+  mpContext Context;
+  mpCommandQueue Queue;
+  mpProgram Program;
+  mpKernel Kernel_CalculatePrefixSum;
 
   virtual void PostStartup() override
   {
@@ -201,18 +208,6 @@ class Main : public mpApplication
 
   virtual QuitOrContinue Run() override
   {
-    mpPlatform Platform;
-    Platform.Initialize();
-    auto Device = mpDevice::GetGPU(Platform, 0);
-    mpContext Context;
-    Context.Initialize(Device);
-    mpCommandQueue Queue;
-    Queue.Initialize(Context, Device);
-    mpProgram Program;
-    MP_Verify(Program.LoadAndBuild(Context, Device, "Kernels/PrefixSum.cl"));
-    mpKernel Kernel_CalculatePrefixSum;
-    Kernel_CalculatePrefixSum.Initialize(Queue, Program, "PrefixSum");
-
     mpLog::Info("N = %u", N);
 
     // Input
@@ -221,10 +216,6 @@ class Main : public mpApplication
     {
       inputData[i] = 1;
     }
-    mpBuffer inputBuffer;
-    inputBuffer.Initialize(Context,
-                           mpBufferFlags::ReadOnly,
-                           mpMakeArrayPtr(inputData, N));
 
     {
       MP_LogBlock("Input Data");
@@ -266,62 +257,70 @@ class Main : public mpApplication
     // GPU Calculation
     //////////////////////////////////////////////////////////////////////////
     if (gpuEnabled)
-    {
-      MP_LogBlock("GPU (%u cycle/s)", numCycles);
-
-      const auto numBlocks = N % blockSize == 0 ?
-                             // If N is a multiple of blockSize:
-                             N / blockSize :
-                             // Else, N is NOT a multiple of blockSize:
-                             (N / blockSize) + 1;
-
-      const auto numItems   = numBlocks * blockSize;
-      const auto numThreads = numItems / 2; // Every thread processes 2 items.
-
-      size_t globalWorkSize[] = { numThreads };
-      size_t localWorkSize[]  = { blockSize / 2 };
-
-      mpLog::Info("Total number of items to process: %u", numItems);
-      mpLog::Info("Total number of threads:          %u", globalWorkSize[0]);
-      mpLog::Info("Number of threads per work group: %u", localWorkSize[0]);
-
-      mpBuffer inputBuffer;
-      inputBuffer.Initialize(Context,
-                             mpBufferFlags::ReadOnly,
-                             mpMakeArrayPtr(inputData, numItems));
-      mpBuffer outputBuffer;
-      outputBuffer.Initialize(Context,
-                              mpBufferFlags::ReadWrite,
-                              mpMakeArrayPtr(outputData_GPU, numItems));
-
-      {
-        mpLog::Info("Running...");
-        MP_Profile("GPU");
-        for(size_t i = 0; i < numCycles; ++i)
-        {
-          Kernel_CalculatePrefixSum.PushArg(inputBuffer);
-          Kernel_CalculatePrefixSum.PushArg(outputBuffer);
-          Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(numItems));
-
-          Kernel_CalculatePrefixSum.Execute(mpMakeArrayPtr(globalWorkSize),
-                                            mpMakeArrayPtr(localWorkSize));
-        }
-      }
-
-      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, numItems), Queue);
-      PrintData(mpMakeArrayPtr(outputData_GPU, N));
-    }
+      GPU(inputData);
 
     if (naiveEnabled && gpuEnabled && AreEqual(mpMakeArrayPtr(outputData_CPU_Naive, N), mpMakeArrayPtr(outputData_GPU, N)))
     {
-      mpLog::Error("Naive and GPU results are NOT equal!");
+      mpLog::Success("Naive and GPU results are equal!");
     }
     else if (upDownSweepEnabled && gpuEnabled && AreEqual(mpMakeArrayPtr(outputData_CPU_UpDownSweep, N), mpMakeArrayPtr(outputData_GPU, N)))
     {
-      mpLog::Error("Up/Down Sweep and GPU results are NOT equal!");
+      mpLog::Success("Up/Down Sweep and GPU results are equal!");
     }
 
     return Quit;
+  }
+
+  void GPU(const cl_int* inputData)
+  {
+    MP_LogBlock("GPU");
+
+    {
+      MP_LogBlock("Initialization");
+      Platform.Initialize();
+      Device = mpDevice::GetGPU(Platform, 0);
+      Context.Initialize(Device);
+      Queue.Initialize(Context, Device);
+      MP_Verify(Program.LoadAndBuild(Context, Device, "Kernels/PrefixSum.cl"));
+      Kernel_CalculatePrefixSum.Initialize(Queue, Program, "PrefixSum");
+    }
+
+    const auto A = ((N + blockSize - 1) / blockSize) * blockSize;
+    MP_Assert(A % blockSize == 0, "Odd block sizes are not allowed!");
+    const auto numBlocks = A / blockSize;
+
+    size_t localWorkSize  = blockSize / 2;
+    size_t globalWorkSize = numBlocks * localWorkSize;
+
+    mpLog::Info("Original N:                  %u", N);
+    mpLog::Info("Adjusted N (A):              %u", A);
+    mpLog::Info("Number of blocks:            %u", numBlocks);
+    mpLog::Info("Block Size:                  %u", blockSize);
+    mpLog::Info("Total number of threads:     %u", globalWorkSize);
+    mpLog::Info("Number of threads per block: %u", localWorkSize);
+    mpLog::Info("Note: Each thread works on 2 items.");
+
+    mpBuffer inputBuffer;
+    inputBuffer.Initialize(Context,
+                           mpBufferFlags::ReadOnly,
+                           mpMakeArrayPtr(inputData, A));
+    mpBuffer outputBuffer;
+    outputBuffer.Initialize(Context,
+                            mpBufferFlags::ReadWrite,
+                            mpMakeArrayPtr(outputData_GPU, A));
+
+    {
+      mpLog::Info("Running...");
+
+      Kernel_CalculatePrefixSum.PushArg(inputBuffer);
+      Kernel_CalculatePrefixSum.PushArg(outputBuffer);
+      Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(blockSize * numBlocks));
+
+      Kernel_CalculatePrefixSum.Execute(globalWorkSize, localWorkSize);
+    }
+
+    outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, A), Queue);
+    PrintData(mpMakeArrayPtr(outputData_GPU, N));
   }
 };
 
