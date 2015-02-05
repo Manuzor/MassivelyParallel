@@ -16,5 +16,7 @@ public:
 
   void Initialize(const mpContext& Context, const mpDevice& Device);
   void Release();
+
+  void EnqueueBarrier();
 private:
 };

@@ -43,6 +43,26 @@ struct mpMathType<double>
   MP_ForceInline static double Sqrt(double fValue) { return sqrt(fValue); }
 };
 
+template<>
+struct mpMathType<mpUInt32>
+{
+  MP_ForceInline static double GetHugeEpsilon()    { return 0; }
+  MP_ForceInline static double GetLargeEpsilon()   { return 0; }
+  MP_ForceInline static double GetDefaultEpsilon() { return 0; }
+  MP_ForceInline static double GetSmallEpsilon()   { return 0; }
+  template<typename ResultType = mpUInt32>
+  MP_ForceInline static ResultType CalcAbs(mpUInt32 f) { return (ResultType)std::abs((mpInt64)f); }
+  template<typename ResultType = mpUInt32>
+  MP_ForceInline static ResultType CalcFloor(mpUInt32 f) { return f; }
+  template<typename ResultType = mpUInt32>
+  MP_ForceInline static ResultType CalcCeil(mpUInt32 f) { return f; }
+  template<typename ResultType = mpUInt32>
+  MP_ForceInline static ResultType CalcRound(mpUInt32 f) { return f; }
+  MP_ForceInline static mpUInt32 Max(mpUInt32 fLhs, mpUInt32 fRhs) { return fLhs > fRhs ? fLhs : fRhs; }
+  MP_ForceInline static mpUInt32 Min(mpUInt32 fLhs, mpUInt32 fRhs) { return fLhs < fRhs ? fLhs : fRhs; }
+  MP_ForceInline static mpUInt32 Sqrt(mpUInt32 fValue) { return (mpUInt32)sqrt(fValue); }
+};
+
 namespace mpMath
 {
   /// \brief Convenient function that delegates the actual work to the mpMathType implementation.
@@ -99,5 +119,21 @@ namespace mpMath
       return false;
 
     return ((x & (x - 1)) == 0);
+  }
+
+  template<typename Type> MP_ForceInline
+  bool IsEven(Type x)
+  {
+    static_assert(std::is_integral<Type>::value, "Only integers (long, etc.) can be checked for being even.");
+    // If the first bit is 0, x is even.
+    return (x & 1) == 0;
+  }
+
+  template<typename Type> MP_ForceInline
+  bool IsOdd(Type x)
+  {
+    static_assert(std::is_integral<Type>::value, "Only integers (long, etc.) can be checked for being odd.");
+    // If the first bit is 0, x is even.
+    return (x & 1) != 0;
   }
 }

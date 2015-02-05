@@ -28,7 +28,7 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
   {
     MP_LogBlock("Build");
 
-    mpLog::Info("Building . . .");
+    mpLog::Dev("Building . . .");
     auto Beginning = mpTime::Now();
     mpResult buildResult = clBuildProgram(m_Id, 1, &Device.m_Id, nullptr, nullptr, nullptr);
 
@@ -42,7 +42,7 @@ mpResult mpProgram::LoadAndBuild(const mpContext& Context,
       return buildResult;
     }
 
-    mpLog::Success("Built program in %f seconds", mpTime::Now() - Beginning);
+    mpLog::Dev("Built program in %f seconds", (mpTime::Now() - Beginning).GetSeconds());
   }
 
   return mpResult::Success();
