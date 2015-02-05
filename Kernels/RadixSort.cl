@@ -29,7 +29,7 @@ kernel void CalcStatistics(global int* data, int size, int byteNr, global int* o
     // Also, if size <= 8192 => maxGroupID = 0 => offset = 0
     int offset = get_group_id(0) * LN * 256;
     data += offset;
-    size += offset;
+    size -= offset;
     out  += get_group_id(0) * 256;
   }
 

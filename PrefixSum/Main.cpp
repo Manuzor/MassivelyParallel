@@ -129,12 +129,31 @@ void PrintData(mpArrayPtr<Type> Data, const size_t uiWidth = 10)
   }
 }
 
+template<typename Type>
+static bool AreEqual(mpArrayPtr<Type> lhs, mpArrayPtr<Type> rhs)
+{
+  if (lhs.m_uiCount != rhs.m_uiCount)
+    return false;
+
+  for (size_t i = 0; i < lhs.m_uiCount; ++i)
+  {
+    // Note: we circumvent bounds checking here because it is not necessary.
+    if (lhs.m_Data[i] != rhs.m_Data[i])
+    {
+      MP_ReportError("Unequal items detected.");
+      return false;
+    }
+  }
+
+  return true;
+}
+
 class Main : public mpApplication
 {
   mpTime m_TimeRunning;
 
   /// Number of elements to be processed.
-  const cl_int N = 1024;
+  const cl_int N = 256;
 
   /// The number of elements that can be processed by a single work group.
   const cl_int blockSize = 512;
@@ -291,6 +310,15 @@ class Main : public mpApplication
 
       outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, numItems), Queue);
       PrintData(mpMakeArrayPtr(outputData_GPU, N));
+    }
+
+    if (naiveEnabled && gpuEnabled && AreEqual(mpMakeArrayPtr(outputData_CPU_Naive, N), mpMakeArrayPtr(outputData_GPU, N)))
+    {
+      mpLog::Error("Naive and GPU results are NOT equal!");
+    }
+    else if (upDownSweepEnabled && gpuEnabled && AreEqual(mpMakeArrayPtr(outputData_CPU_UpDownSweep, N), mpMakeArrayPtr(outputData_GPU, N)))
+    {
+      mpLog::Error("Up/Down Sweep and GPU results are NOT equal!");
     }
 
     return Quit;

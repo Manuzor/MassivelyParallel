@@ -125,7 +125,7 @@ static bool AreEqual(mpArrayPtr<Type> lhs, mpArrayPtr<Type> rhs)
     // Note: we circumvent bounds checking here because it is not necessary.
     if (lhs.m_Data[i] != rhs.m_Data[i])
     {
-      MP_Assert(false, "Unequal items detected.");
+      MP_ReportError("Unequal items detected.");
       return false;
     }
   }
@@ -140,7 +140,7 @@ class Main : public mpApplication
   mpRandom::mpNumberGenerator m_Rand;
 
   /// Number of elements to be processed.
-  const cl_int N = 8192 + 1;
+  const cl_int N = 1024 * 1024 * 100; // 100 MB
 
   cl_int* inputData      = nullptr;
   cl_int* expectedResult = nullptr;
@@ -185,12 +185,17 @@ class Main : public mpApplication
 
   virtual QuitOrContinue Run() override
   {
-    //MP_LogLevelForScope(mpLogLevel::Success);
+    mpTime time;
     for (mpUInt32 i = 0; i < 1; ++i)
     {
       m_Rand.RandomizeSeed();
-      MP_LogBlock("Random seed: %u", m_Rand.GetSeed());
-      Work();
+      MP_LogBlock("N = %u | RNG Seed = %u", N, m_Rand.GetSeed());
+      {
+        MP_Profile("Work iteration #%u");
+        mpLog::Info("Running...");
+        MP_LogLevelForScope(mpLogLevel::Success);
+        Work();
+      }
     }
 
     return Quit;
@@ -198,8 +203,6 @@ class Main : public mpApplication
 
   void Work()
   {
-    mpLog::Info("N = %u", N);
-
     // Prepare input data.
     //////////////////////////////////////////////////////////////////////////
     for (size_t i = 0; i < N; ++i)
@@ -329,7 +332,6 @@ class Main : public mpApplication
       Kernel_CalcStatistics.PushArg(outputBuffer);
       Kernel_CalcStatistics.PushArg(mpLocalMemory<cl_int>(perWorkGroup));
       Kernel_CalcStatistics.Execute(numWorkGroups * numWorkItems, numWorkItems);
-      outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, numWorkGroups * 256), Queue);
 
       // Reduce statistics. This is only needed if numWorkGroups > 1.
       //////////////////////////////////////////////////////////////////////////
@@ -338,7 +340,6 @@ class Main : public mpApplication
         Kernel_ReduceStatistics.PushArg(outputBuffer);
         Kernel_ReduceStatistics.PushArg(numWorkGroups);
         Kernel_ReduceStatistics.Execute(256);
-        outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, 256), Queue);
       }
 
       // Create the prefix sum of the statistics.
@@ -346,7 +347,6 @@ class Main : public mpApplication
       Kernel_PrefixSum.PushArg(outputBuffer); // Input.
       Kernel_PrefixSum.PushArg(prefixSumBuffer); // Output.
       Kernel_PrefixSum.Execute(128);
-    inputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
 
       // Insert sorted.
       //////////////////////////////////////////////////////////////////////////
@@ -367,9 +367,10 @@ class Main : public mpApplication
         Kernel_InsertSorted.PushArg(prefixSumBuffer);            // Prefix sums.
         Kernel_InsertSorted.PushArg(byteNr);                     // Byte Nr.
         Kernel_InsertSorted.PushArg(mpLocalMemory<cl_int>(256)); // Local indices.
+
+        // Note: This should be called with 256 threads but the algorithm is not stable.
+        //       Running it with the warp size of the GPU will yield proper results.
         Kernel_InsertSorted.Execute(32);
-    inputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, N), Queue);
-        // FIXME ^ Should be called with 256 threads.
 
         Queue.EnqueueBarrier();
       }
@@ -382,7 +383,7 @@ class Main : public mpApplication
         cl_int prefix[256];
         prefixSumBuffer.ReadInto(mpMakeArrayPtr(prefix), Queue);
         {
-          MP_LogBlock("Prefix sums (Byte #%d", byteNr);
+          MP_LogBlock("Prefix sums (Byte #%d)", byteNr);
           PrintData(mpMakeArrayPtr(prefix));
         }
 
