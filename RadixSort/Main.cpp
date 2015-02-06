@@ -140,7 +140,7 @@ class Main : public mpApplication
   mpRandom::mpNumberGenerator m_Rand;
 
   /// Number of elements to be processed.
-  const cl_int N = 1024 * 1024 * 100; // 100 MB
+  cl_int N = 1024; // 1 KiB
 
   cl_int* inputData      = nullptr;
   cl_int* expectedResult = nullptr;
@@ -160,8 +160,29 @@ class Main : public mpApplication
   mpKernel Kernel_ReduceStatistics;
   mpKernel Kernel_InsertSorted;
 
+  void ReadUserInput()
+  {
+    std::string input;
+
+    while(true)
+    {
+      std::cout << "...| Size of input data (Default = " << N << "): ";
+      std::getline(std::cin, input);
+      if(input.empty())
+        break; // Empty line means: Use the default.
+      try
+      {
+        N = std::stoi(input);
+        // If input could be parsed successfully, break.
+        break;
+      }
+      catch(...) { /* Invalid stoi call*/ }
+    }
+  }
+
   virtual void PostStartup() override
   {
+    ReadUserInput();
     m_TimeRunning = mpTime::Now();
 
     inputData      = new cl_int[N];
@@ -191,9 +212,8 @@ class Main : public mpApplication
       m_Rand.RandomizeSeed();
       MP_LogBlock("N = %u | RNG Seed = %u", N, m_Rand.GetSeed());
       {
-        MP_Profile("Work iteration #%u");
+        MP_Profile("Work Iteration");
         mpLog::Info("Running...");
-        MP_LogLevelForScope(mpLogLevel::Success);
         Work();
       }
     }
@@ -205,13 +225,11 @@ class Main : public mpApplication
   {
     // Prepare input data.
     //////////////////////////////////////////////////////////////////////////
+    mpLog::Info("Note: Input data is generated in the range of [0, 10000).");
     for (size_t i = 0; i < N; ++i)
     {
-      //inputData[i] = ((i + N/2) % N);
-      //inputData[i] = 1;
-
-      // Random value in range of [0, N).
-      inputData[i] = m_Rand.Generate<cl_int>(0, N);
+      // Random value in range of [0, 10000).
+      inputData[i] = m_Rand.Generate<cl_int>(0, 10000);
     }
 
     {
@@ -223,7 +241,7 @@ class Main : public mpApplication
     std::sort(expectedResult, expectedResult + N);
 
     {
-      MP_LogBlock("Expected Result");
+      MP_LogBlock("Expected Result (std::sort)");
       PrintData(mpMakeArrayPtr(expectedResult, N));
     }
 
@@ -280,7 +298,7 @@ class Main : public mpApplication
       Context.Initialize(Device);
       Queue.Initialize(Context, Device);
 
-      MP_Verify(Program_PrefixSum.LoadAndBuild(Context, Device, "Kernels/PrefixSum256.cl"));
+      MP_Verify(Program_PrefixSum.LoadAndBuild(Context, Device, "Kernels/PrefixSum.cl"));
       Kernel_PrefixSum.Initialize(Queue, Program_PrefixSum, "PrefixSum");
 
       MP_Verify(Program_RadixSort.LoadAndBuild(Context, Device, "Kernels/RadixSort.cl"));
@@ -346,6 +364,7 @@ class Main : public mpApplication
       //////////////////////////////////////////////////////////////////////////
       Kernel_PrefixSum.PushArg(outputBuffer); // Input.
       Kernel_PrefixSum.PushArg(prefixSumBuffer); // Output.
+      Kernel_PrefixSum.PushArg(mpLocalMemory<cl_int>(256));
       Kernel_PrefixSum.Execute(128);
 
       // Insert sorted.

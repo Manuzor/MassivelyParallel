@@ -2,3 +2,5 @@
 #include "mpWrapper/Core.h"
 #include "mpWrapper/Utilities.h"
 
+#include <iostream>
+#include <string>
