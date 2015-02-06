@@ -153,7 +153,7 @@ class Main : public mpApplication
   mpTime m_TimeRunning;
 
   /// Number of elements to be processed.
-  const cl_int N = 512;
+  const cl_int N = 512 + 1;
 
   /// The number of elements that can be processed by a single work group.
   const cl_int blockSize = 512;
@@ -182,6 +182,8 @@ class Main : public mpApplication
   mpCommandQueue Queue;
   mpProgram Program;
   mpKernel Kernel_CalculatePrefixSum;
+  mpKernel Kernel_PrefixSumHelper;
+  mpKernel Kernel_PrefixSumReduce;
 
   virtual void PostStartup() override
   {
@@ -271,7 +273,7 @@ class Main : public mpApplication
     return Quit;
   }
 
-  void GPU(const cl_int* inputData)
+  void GPU(cl_int* originalData)
   {
     MP_LogBlock("GPU");
 
@@ -283,44 +285,116 @@ class Main : public mpApplication
       Queue.Initialize(Context, Device);
       MP_Verify(Program.LoadAndBuild(Context, Device, "Kernels/PrefixSum.cl"));
       Kernel_CalculatePrefixSum.Initialize(Queue, Program, "PrefixSum");
+      Kernel_PrefixSumHelper.Initialize(Queue, Program, "PrefixSumHelper");
+      Kernel_PrefixSumReduce.Initialize(Queue, Program, "PrefixSumReduce");
     }
 
     const auto A = ((N + blockSize - 1) / blockSize) * blockSize;
     MP_Assert(A % blockSize == 0, "Odd block sizes are not allowed!");
     const auto numBlocks = A / blockSize;
 
-    size_t localWorkSize  = blockSize / 2;
-    size_t globalWorkSize = numBlocks * localWorkSize;
+    MP_Assert(A >= N, "A must be >= N!");
+
+    cl_int* inputData;
+    if (A == N)
+    {
+      inputData = originalData;
+    }
+    else
+    {
+      inputData = new cl_int[A];
+      memcpy(inputData, originalData, N * sizeof(cl_int));
+      memset(inputData + N, 0, (A - N) * sizeof(cl_int));
+    }
 
     mpLog::Info("Original N:                  %u", N);
     mpLog::Info("Adjusted N (A):              %u", A);
     mpLog::Info("Number of blocks:            %u", numBlocks);
     mpLog::Info("Block Size:                  %u", blockSize);
-    mpLog::Info("Total number of threads:     %u", globalWorkSize);
-    mpLog::Info("Number of threads per block: %u", localWorkSize);
+    mpLog::Info("Total number of threads:     %u", numBlocks * blockSize / 2);
+    mpLog::Info("Number of threads per block: %u", blockSize / 2);
     mpLog::Info("Note: Each thread works on 2 items.");
 
-    mpBuffer inputBuffer;
-    inputBuffer.Initialize(Context,
-                           mpBufferFlags::ReadOnly,
-                           mpMakeArrayPtr(inputData, A));
-    mpBuffer outputBuffer;
-    outputBuffer.Initialize(Context,
-                            mpBufferFlags::ReadWrite,
-                            mpMakeArrayPtr(outputData_GPU, A));
+    mpBuffer bufferA;
+    bufferA.Initialize(Context,
+                       mpBufferFlags::ReadWrite,
+                       mpMakeArrayPtr(inputData, A));
+    mpBuffer bufferB;
+    bufferB.Initialize(Context,
+                       mpBufferFlags::ReadWrite,
+                       mpMakeArrayPtr(outputData_GPU, A));
+
+    if (numBlocks == 1)
+    {
+      PrefixSumGPU(bufferA, bufferB, A);
+    }
+    else
+    {
+      mpBuffer temp;
+      temp.Initialize(Context,
+                      mpBufferFlags::ReadWrite,
+                      blockSize * sizeof(cl_int));
+      PrefixSumGPU(bufferA, bufferB, A, temp, blockSize, numBlocks);
+    }
+
+    bufferB.ReadInto(mpMakeArrayPtr(outputData_GPU, A), Queue);
+    PrintData(mpMakeArrayPtr(outputData_GPU, N));
+
+    if (inputData != originalData)
+    {
+      delete inputData;
+    }
+  }
+
+  /// \brief Simply calculates the prefix sum of \a bufferA
+  ///        and stores the result in \a bufferB.
+  /// \param size Size of \a bufferA and \a bufferB.
+  void PrefixSumGPU(mpBuffer& bufferA,
+                    mpBuffer& bufferB,
+                    cl_int size)
+  {
+    Kernel_CalculatePrefixSum.PushArg(bufferA);
+    Kernel_CalculatePrefixSum.PushArg(bufferB);
+    Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(size));
+
+    Kernel_CalculatePrefixSum.Execute(size / 2);
+  }
+
+  /// \param temp Is of size \a blockSize.
+  void PrefixSumGPU(mpBuffer& bufferA,
+                    mpBuffer& bufferB,
+                    cl_int size,
+                    mpBuffer& temp,
+                    cl_int blockSize,
+                    cl_int numBlocks)
+  {
+    Kernel_CalculatePrefixSum.PushArg(bufferA);
+    Kernel_CalculatePrefixSum.PushArg(bufferB);
+    Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(blockSize * numBlocks));
 
     {
-      mpLog::Info("Running...");
-
-      Kernel_CalculatePrefixSum.PushArg(inputBuffer);
-      Kernel_CalculatePrefixSum.PushArg(outputBuffer);
-      Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(blockSize * numBlocks));
-
+      size_t localWorkSize = blockSize / 2;
+      size_t globalWorkSize = numBlocks * localWorkSize;
       Kernel_CalculatePrefixSum.Execute(globalWorkSize, localWorkSize);
     }
 
-    outputBuffer.ReadInto(mpMakeArrayPtr(outputData_GPU, A), Queue);
-    PrintData(mpMakeArrayPtr(outputData_GPU, N));
+    Kernel_PrefixSumHelper.PushArg(bufferA);
+    Kernel_PrefixSumHelper.PushArg(bufferB);
+    Kernel_PrefixSumHelper.PushArg(temp);
+    Kernel_PrefixSumHelper.PushArg(blockSize);
+    Kernel_PrefixSumHelper.Execute(numBlocks);
+
+    Kernel_CalculatePrefixSum.PushArg(temp);
+    Kernel_CalculatePrefixSum.PushArg(temp);
+    Kernel_CalculatePrefixSum.PushArg(mpLocalMemory<cl_int>(numBlocks)); // numBlocks == size of temp.
+    Kernel_CalculatePrefixSum.Execute(numBlocks / 2);
+
+    temp.ReadInto(mpMakeArrayPtr(outputData_GPU, numBlocks), Queue);
+    PrintData(mpMakeArrayPtr(outputData_GPU, numBlocks));
+
+    Kernel_PrefixSumReduce.PushArg(bufferB);
+    Kernel_PrefixSumReduce.PushArg(temp);
+    Kernel_PrefixSumReduce.Execute(numBlocks * blockSize / 2, blockSize / 2);
   }
 };
 

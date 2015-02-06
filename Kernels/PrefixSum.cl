@@ -118,3 +118,20 @@ kernel void PrefixSum(global int* in_A, global int* out_B,
                  out_B + offset,
                  cache + offset);
 }
+
+kernel void PrefixSumHelper(global int* in_A, global int* in_B,
+                            global int* out_C, int blockSize)
+{
+  // threadID | inIndex
+  //        0 |     511
+  //        1 |    1023
+  //        2 |    1535
+  int inIndex = ((LX + 1) * blockSize) - 1;
+  out_C[LX] = in_A[inIndex] + in_B[inIndex];
+}
+
+kernel void PrefixSumReduce(global int* in_B, global int* in_D)
+{
+  in_B += get_group_id(0) * BlockSize; // offset.
+  in_B[LX] += in_D[get_group_id(0)];
+}
