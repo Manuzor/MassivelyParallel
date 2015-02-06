@@ -353,7 +353,6 @@ class Main : public mpApplication
     // ====================
     Kernel_PrefixSum.PushArg(bufferA);
     Kernel_PrefixSum.PushArg(bufferB);
-    auto localCacheSize = blockSize * numBlocks;
     Kernel_PrefixSum.PushArg(mpLocalMemory<cl_int>(blockSize * numBlocks));
     Kernel_PrefixSum.Execute(numBlocks * blockSize / 2, blockSize / 2);
 
