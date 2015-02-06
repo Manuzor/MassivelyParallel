@@ -148,6 +148,8 @@ static bool AreEqual(mpArrayPtr<Type> lhs, mpArrayPtr<Type> rhs)
   return true;
 }
 
+static mpRandom::mpNumberGenerator g_Rand;
+
 class Main : public mpApplication
 {
   mpTime m_TimeRunning;
@@ -187,7 +189,7 @@ class Main : public mpApplication
 
     while(true)
     {
-      std::cout << "Size of input data (Default = " << N << "): ";
+      std::cout << "...| Size of input data (Default = " << N << "): ";
       std::getline(std::cin, input);
       if(input.empty())
         break; // Empty line means: Use the default.
@@ -202,7 +204,7 @@ class Main : public mpApplication
 
     while(true)
     {
-      std::cout << "Block size (Default = " << blockSize << "): ";
+      std::cout << "...| Block size (Default = " << blockSize << "): ";
       std::getline(std::cin, input);
       if(input.empty())
         break; // Empty line means: Use the default.
@@ -244,12 +246,13 @@ class Main : public mpApplication
   {
     mpLog::Info("N =          %u", N);
     mpLog::Info("Block Size = %u", blockSize);
+    mpLog::Info("Note: Input data will be randomly generated in the range of [0, 20).");
 
     // Input
     //////////////////////////////////////////////////////////////////////////
     for (size_t i = 0; i < N; ++i)
     {
-      inputData[i] = 1;
+      inputData[i] = g_Rand.Generate(0, 20);
     }
 
     {
