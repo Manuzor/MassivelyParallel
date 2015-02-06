@@ -19,7 +19,6 @@ files=(
   # =======
   "Kernels/Blend.cl"
   "Kernels/PrefixSum.cl"
-  "Kernels/PrefixSum256.cl"
   "Kernels/RadixSort.cl"
 
   # Built Binaries
