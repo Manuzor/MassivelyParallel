@@ -11,9 +11,9 @@
 #define LH get_local_size(1) ///< Local work size in y-direction
 #define LN (LW * LH)         ///< Total local work size
 
-#define Pow2(x) (1 << (x))
-#define BlockSize (2 * LN)
-#define Log2i(i) ((int)log2((float)(i)))
+#define Exp2(x) (1 << (x)) // Raises 2 to the power of `x`.
+#define BlockSize (2 * LN) // The block size of the prefix sum algorithm.
+#define Log2i(i) ((int)log2((float)(i))) // Base 2 logarithm for integers.
 
 /// \note Terminates with a barrier.
 inline void UpSweep(local int* cache)
@@ -24,13 +24,13 @@ inline void UpSweep(local int* cache)
   for(int d = 0; d < k; ++d)
   {
     // Calculate an index:
-    int index = (LX + 1) * Pow2(d + 1) - 1;
+    int index = (LX + 1) * Exp2(d + 1) - 1;
 
     // If the current thread can run, we calculate the sum.
     if (index < BlockSize)
     {
       // The index of the other element to add.
-      int other = index - Pow2(d);
+      int other = index - Exp2(d);
       // Add the current value with the other value
       // And store it at the position of the current value.
       cache[index] += cache[other];
@@ -49,13 +49,13 @@ inline void DownSweep(local int* cache)
 
   for(int d = k; d >= 0; --d)
   {
-    int index = (LX + 1) * Pow2(d + 1) - 1;
+    int index = (LX + 1) * Exp2(d + 1) - 1;
 
     // If the current thread can run, we calculate the sum.
     if(index < BlockSize)
     {
       // The index of the other element to add.
-      int other = index - Pow2(d);
+      int other = index - Exp2(d);
 
       // Cache the current value...
       int previous = cache[index];
@@ -81,14 +81,14 @@ inline void DownSweep(local int* cache)
 void PrefixSumBlock(global int* in, global int* out, local int* cache)
 {
   // Preparation
-  //////////////////////////////////////////////////////////////////////////
+  // ===========
   // Copy data from global memory to local memory.
   cache[LX]      = in[LX];
   cache[LX + LN] = in[LX + LN];
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  // Up- and down sweep.
-  //////////////////////////////////////////////////////////////////////////
+  // UpSweep
+  // =======
   UpSweep(cache);
 
   // Set the last value in the cache to 0 (required by the algorithm).
@@ -97,15 +97,21 @@ void PrefixSumBlock(global int* in, global int* out, local int* cache)
   // Let all threads wait for local thread #0 before continuing.
   barrier(CLK_LOCAL_MEM_FENCE);
 
+  // DownSweep
+  // =========
   DownSweep(cache);
 
   // Finalization
-  //////////////////////////////////////////////////////////////////////////
+  // ============
   // Copy local data back to global memory.
   out[LX]      = cache[LX];
   out[LX + LN] = cache[LX + LN];
   barrier(CLK_LOCAL_MEM_FENCE);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+/// Kernels ////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 /// \brief Calculates prefix sums in a block-wise manner.
 /// \pre Size of \a in_A must be a multiple of BlockSize.
@@ -122,16 +128,13 @@ kernel void PrefixSum(global int* in_A, global int* out_B,
 kernel void PrefixSumHelper(global int* in_A, global int* in_B,
                             global int* out_C, int blockSize)
 {
-  // threadID | inIndex
-  //        0 |     511
-  //        1 |    1023
-  //        2 |    1535
-  int inIndex = ((LX + 1) * blockSize) - 1;
-  out_C[LX] = in_A[inIndex] + in_B[inIndex];
+  int inIndex = ((GX + 1) * blockSize) - 1;
+  out_C[GX] = in_A[inIndex] + in_B[inIndex];
 }
 
 kernel void PrefixSumReduce(global int* in_B, global int* in_D)
 {
-  in_B += get_group_id(0) * BlockSize; // offset.
-  in_B[LX] += in_D[get_group_id(0)];
+  in_B += get_group_id(0) * BlockSize; // += local offset
+  in_B[LX]      += in_D[get_group_id(0)];
+  in_B[LX + LN] += in_D[get_group_id(0)];
 }
