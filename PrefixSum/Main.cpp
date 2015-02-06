@@ -153,14 +153,10 @@ class Main : public mpApplication
   mpTime m_TimeRunning;
 
   /// Number of elements to be processed.
-  const cl_int N = 512 * 16;
+  cl_int N = 8192;
 
   /// The number of elements that can be processed by a single work group.
-  const cl_int blockSize = 512;
-
-  /// Number of times the prefix sums are calculated.
-  /// \note Used for profiling purposes.
-  const cl_int numCycles = 1;
+  cl_int blockSize = 512;
 
   /// Enable or disable single-threaded naive algorithm on CPU.
   const bool naiveEnabled       = true;
@@ -185,8 +181,44 @@ class Main : public mpApplication
   mpKernel Kernel_PrefixSumHelper;
   mpKernel Kernel_PrefixSumReduce;
 
+  void ReadUserInput()
+  {
+    std::string input;
+
+    while(true)
+    {
+      std::cout << "Size of input data (Default = " << N << "): ";
+      std::getline(std::cin, input);
+      if(input.empty())
+        break; // Empty line means: Use the default.
+      try
+      {
+        N = std::stoi(input);
+        // If input could be parsed successfully, break.
+        break;
+      }
+      catch(...) { /* Invalid stoi call*/ }
+    }
+
+    while(true)
+    {
+      std::cout << "Block size (Default = " << blockSize << "): ";
+      std::getline(std::cin, input);
+      if(input.empty())
+        break; // Empty line means: Use the default.
+      try
+      {
+        blockSize = std::stoi(input);
+        // If input could be parsed successfully, break.
+        break;
+      }
+      catch(...) { /* Invalid stoi call*/ }
+    }
+  }
+
   virtual void PostStartup() override
   {
+    ReadUserInput();
     m_TimeRunning = mpTime::Now();
 
     inputData                  = new cl_int[N];
@@ -210,8 +242,8 @@ class Main : public mpApplication
 
   virtual QuitOrContinue Run() override
   {
-    mpLog::Info("N = %u", N);
-    MP_LogLevelForScope(mpLogLevel::Info);
+    mpLog::Info("N =          %u", N);
+    mpLog::Info("Block Size = %u", blockSize);
 
     // Input
     //////////////////////////////////////////////////////////////////////////
@@ -229,30 +261,24 @@ class Main : public mpApplication
     //////////////////////////////////////////////////////////////////////////
     if (naiveEnabled)
     {
-      MP_LogBlock("CPU: Naive (%u cycle/s)", numCycles);
+      MP_LogBlock("CPU: Naive");
       {
         mpLog::Info("Running...");
         MP_Profile("CPU: Naive");
-        for (size_t i = 0; i < numCycles; ++i)
-        {
-          Naive::CalcPrefixSum(mpMakeArrayPtr(inputData, N),
-                               mpMakeArrayPtr(outputData_CPU_Naive, N));
-        }
+        Naive::CalcPrefixSum(mpMakeArrayPtr(inputData, N),
+                              mpMakeArrayPtr(outputData_CPU_Naive, N));
       }
       PrintData(mpMakeArrayPtr(outputData_CPU_Naive, N));
     }
 
     if (upDownSweepEnabled)
     {
-      MP_LogBlock("CPU: Up/Downsweep (%u cycle/s)", numCycles);
+      MP_LogBlock("CPU: Up/Downsweep");
       {
         mpLog::Info("Running...");
         MP_Profile("CPU: Up/Downsweep");
-        for (size_t i = 0; i < numCycles; ++i)
-        {
-          UpDown::CalcPrefixSum(mpMakeArrayPtr(inputData, N),
-                                mpMakeArrayPtr(outputData_CPU_UpDownSweep, N));
-        }
+        UpDown::CalcPrefixSum(mpMakeArrayPtr(inputData, N),
+                              mpMakeArrayPtr(outputData_CPU_UpDownSweep, N));
       }
       PrintData(mpMakeArrayPtr(outputData_CPU_UpDownSweep, N));
     }
@@ -262,13 +288,15 @@ class Main : public mpApplication
     if (gpuEnabled)
       GPU(inputData);
 
-    if (naiveEnabled && gpuEnabled && AreEqual(mpMakeArrayPtr(outputData_CPU_Naive, N), mpMakeArrayPtr(outputData_GPU, N)))
+    if (naiveEnabled && gpuEnabled &&
+        AreEqual(mpMakeArrayPtr(outputData_CPU_Naive, N), mpMakeArrayPtr(outputData_GPU, N)))
     {
-      mpLog::Success("Naive and GPU results are equal!");
+      mpLog::Success("Results for CPU (Naive) and GPU are equal!");
     }
-    else if (upDownSweepEnabled && gpuEnabled && AreEqual(mpMakeArrayPtr(outputData_CPU_UpDownSweep, N), mpMakeArrayPtr(outputData_GPU, N)))
+    else if (upDownSweepEnabled && gpuEnabled &&
+             AreEqual(mpMakeArrayPtr(outputData_CPU_UpDownSweep, N), mpMakeArrayPtr(outputData_GPU, N)))
     {
-      mpLog::Success("Up/Down Sweep and GPU results are equal!");
+      mpLog::Success("Results for CPU (Up/Down Sweep) and GPU are equal!");
     }
 
     return Quit;
