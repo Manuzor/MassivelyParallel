@@ -250,7 +250,7 @@ class Main : public mpApplication
 
     // Input
     //////////////////////////////////////////////////////////////////////////
-    for (size_t i = 0; i < N; ++i)
+    for (cl_int i = 0; i < N; ++i)
     {
       inputData[i] = g_Rand.Generate(0, 20);
     }
