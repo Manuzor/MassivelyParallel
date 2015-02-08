@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-### Packages all necessary files for a release.                              ###
+### Packages all necessary binaries for a release.                           ###
 ################################################################################
 
 packageName="MassivelyParallel_Build"

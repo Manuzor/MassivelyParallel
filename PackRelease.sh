@@ -1,9 +1,9 @@
 #!/bin/bash
 ################################################################################
-### Packages all necessary files for a release.                              ###
+### Packages all necessary source files for a release that can be built.     ###
 ################################################################################
 
-packageName="ExamSubmission"
+packageName="MassivelyParallel_Source"
 files=(
   # General Files
   # =============
@@ -30,6 +30,14 @@ files=(
   "Output/Bin/x64Release/sfml-graphics-2.dll"
   "Output/Bin/x64Release/sfml-system-2.dll"
   "Output/Bin/x64Release/sfml-window-2.dll"
+
+  "Output/Bin/Win32Release/mpWrapper.dll"
+  "Output/Bin/Win32Release/Texture.exe"
+  "Output/Bin/Win32Release/PrefixSum.exe"
+  "Output/Bin/Win32Release/RadixSort.exe"
+  "Output/Bin/Win32Release/sfml-graphics-2.dll"
+  "Output/Bin/Win32Release/sfml-system-2.dll"
+  "Output/Bin/Win32Release/sfml-window-2.dll"
 
   # Generated Files For a Release
   # =============================
