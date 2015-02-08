@@ -36,6 +36,4 @@ files=(
 )
 
 # Build the archive.
-#7z a -mx9 -t7z "$packageName" ${files[@]}
-echo "PackageName: $packageName"
-echo "Files: ${files[@]}"
+7z a -mx9 -t7z "$packageName" ${files[@]}
