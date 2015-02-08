@@ -43,7 +43,7 @@ namespace RadixSort
   {
     memset(counts, 0, 256 * sizeof(cl_int));
 
-    for (cl_int i = 0; i < data.m_uiCount; ++i)
+    for (size_t i = 0; i < data.m_uiCount; ++i)
     {
       auto byte = GetSingleByte(data[i], byteNr);
       ++counts[byte];
@@ -55,7 +55,7 @@ namespace RadixSort
                     cl_int* prefix,
                     cl_int byteNr)
   {
-    for(cl_int i = 0; i < source.m_uiCount; ++i)
+    for(size_t i = 0; i < source.m_uiCount; ++i)
     {
       auto byte = GetSingleByte(source[i], byteNr);
       auto& index = prefix[byte];
@@ -226,7 +226,7 @@ class Main : public mpApplication
     // Prepare input data.
     //////////////////////////////////////////////////////////////////////////
     mpLog::Info("Note: Input data is generated in the range of [0, 10000).");
-    for (size_t i = 0; i < N; ++i)
+    for (cl_int i = 0; i < N; ++i)
     {
       // Random value in range of [0, 10000).
       inputData[i] = m_Rand.Generate<cl_int>(0, 10000);
