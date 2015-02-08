@@ -16,6 +16,7 @@ Requirements
 * Visual Studio Toolset v120 or higher (Visual Studio 2013)
 * OpenCL v1.1
 * SFML 2.1, in case you're not building from the minimal source build package provided as a [release package][GH Releases].
+* Python 3.x for some scripts used at compile time.
 
 _Note: The code is only tested for nVidia graphics cards_
 
