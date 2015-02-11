@@ -13,7 +13,7 @@ namespace mpInternal
 
     ~mpProfileScope()
     {
-      mpLog::Dev("'%s' finished in %f seconds", m_Name.c_str(), (mpTime::Now() - m_Begin).GetSeconds());
+      mpLog::SeriousWarning("'%s' finished in %f seconds", m_Name.c_str(), (mpTime::Now() - m_Begin).GetSeconds());
     }
   };
 }

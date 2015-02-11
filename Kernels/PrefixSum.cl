@@ -122,7 +122,7 @@ kernel void PrefixSum(global int* in_A, global int* out_B,
   // Calculate the prefix sum and store the result in the same array.
   PrefixSumBlock(in_A  + offset,
                  out_B + offset,
-                 cache + offset);
+                 cache);
 }
 
 kernel void PrefixSumHelper(global int* in_A, global int* in_B,

@@ -111,7 +111,7 @@ namespace Naive
 template<typename Type>
 void PrintData(mpArrayPtr<Type> Data, const size_t uiWidth = 10)
 {
-  //return;
+  return;
   const size_t uiHeight = Data.m_uiCount / uiWidth;
   for (size_t i = 0; i < uiHeight + 1; ++i)
   {
@@ -248,6 +248,8 @@ class Main : public mpApplication
     mpLog::Info("Block Size = %u", blockSize);
     mpLog::Info("Note: Input data will be randomly generated in the range of [0, 20).");
 
+    MP_LogLevelForScope(mpLogLevel::Success);
+
     // Input
     //////////////////////////////////////////////////////////////////////////
     for (cl_int i = 0; i < N; ++i)
@@ -355,9 +357,12 @@ class Main : public mpApplication
                        A * sizeof(cl_int));
 
     mpLog::Info("Running...");
-    PrefixSumGPU(bufferA, bufferB, blockSize, numBlocks);
+    {
+      MP_Profile("Recursive Prefix Sum on GPU");
+      PrefixSumGPU(bufferA, bufferB, blockSize, numBlocks);
 
-    bufferB.ReadInto(mpMakeArrayPtr(outputData_GPU, A), Queue);
+      bufferB.ReadInto(mpMakeArrayPtr(outputData_GPU, A), Queue);
+    }
     PrintData(mpMakeArrayPtr(outputData_GPU, N));
 
     if (inputData != originalData)
@@ -384,7 +389,7 @@ class Main : public mpApplication
     // ====================
     Kernel_PrefixSum.PushArg(bufferA);
     Kernel_PrefixSum.PushArg(bufferB);
-    Kernel_PrefixSum.PushArg(mpLocalMemory<cl_int>(blockSize * numBlocks));
+    Kernel_PrefixSum.PushArg(mpLocalMemory<cl_int>(blockSize));
     Kernel_PrefixSum.Execute(numBlocks * blockSize / 2, blockSize / 2);
 
     bufferB.ReadInto(mpMakeArrayPtr(outputData_GPU, numBlocks * blockSize), Queue);
